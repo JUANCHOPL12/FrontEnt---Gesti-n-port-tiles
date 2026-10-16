@@ -1,16 +1,29 @@
 ﻿@inherits LayoutComponentBase
+@using Blazored.LocalStorage
+@inject ILocalStorageService LocalStorage
+@inject NavigationManager Navigation
+
 <div class="page">
-    <div class="sidebar">
+    @if (estaAutenticado)
+    {
+        <!-- Muestra la Navbar verde institucional solo cuando el usuario ya inició sesión -->
         <NavMenu />
-    </div>
+    }
 
     <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
-
-        <article class="content px-4">
+        <article class="content">
             @Body
         </article>
     </main>
 </div>
+
+@code {
+    private bool estaAutenticado = false;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Verificar si existe una sesión activa almacenada (RF-01, RNF-08)
+        var token = await LocalStorage.GetItemAsync<string>("sge_token");
+        estaAutenticado = !string.IsNullOrEmpty(token);
+    }
+}
