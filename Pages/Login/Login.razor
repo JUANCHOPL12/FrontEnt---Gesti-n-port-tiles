@@ -1,0 +1,161 @@
+@page "/"
+@page "/login"
+@using FrontEnt_GestionPortatiles_Blazor.DTOs.Autenticacion
+@using FrontEnt_GestionPortatiles_Blazor.Servicios
+@using Blazored.LocalStorage
+@inject IApiService ApiService
+@inject ILocalStorageService LocalStorage
+@inject NavigationManager Navigation
+
+<div class="login-bg-container">
+    
+    <!-- TARJETA FLOTANTE DE LOGIN (REFERENCIA UNICIENCIA) -->
+    <div class="card login-card">
+        
+        <!-- ENCABEZADO VERDE CON LOGO Y NOMBRE INSTITUCIONAL -->
+        <div class="login-card-header">
+            <div class="login-header-logo-container">
+                <!-- Espacio preparado para tu logo -->
+                <img src="images/logo-uniciencia.png" 
+                     alt="Logo Uniciencia" 
+                     class="login-header-logo-img" 
+                     onerror="this.style.display='none'; document.getElementById('login-logo-placeholder').style.display='flex';" />
+
+                <div id="login-logo-placeholder" class="bg-light text-success fw-bold rounded px-2 py-1 fs-5 align-items-center" style="display: none; height: 38px;">
+                    UC
+                </div>
+
+                <div class="login-header-divider"></div>
+
+                <div class="login-header-text">
+                    <div class="login-header-title">UNICIENCIA</div>
+                    <div class="login-header-subtitle">Corporación Unificada Nacional<br />de Educación Superior</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CUERPO DEL FORMULARIO DE ACCESO (RF-01, RF-03) -->
+        <div class="login-card-body text-center">
+            
+            <div class="login-icon-box">
+                <i class="bi bi-laptop"></i>
+            </div>
+
+            <h3 class="login-title mb-1">Iniciar Sesión</h3>
+            <p class="login-description">Ingresa con tu usuario y contraseña para acceder al sistema de gestión de portátiles.</p>
+
+            <EditForm Model="@loginModel" OnValidSubmit="ProcesarLogin">
+                <DataAnnotationsValidator />
+
+                @if (!string.IsNullOrEmpty(mensajeError))
+                {
+                    <div class="alert alert-danger text-center p-2 mb-3 small fw-bold rounded-3" role="alert">
+                        <i class="bi bi-exclamation-circle-fill me-1"></i> @mensajeError
+                    </div>
+                }
+
+                <!-- CAMPO USUARIO -->
+                <div class="mb-3 text-start">
+                    <div class="custom-input-group">
+                        <span class="custom-input-icon"><i class="bi bi-person"></i></span>
+                        <InputText @bind-Value="loginModel.NombreUsuario" class="form-control custom-input-field" placeholder="Usuario" />
+                    </div>
+                    <ValidationMessage For="@(() => loginModel.NombreUsuario)" class="text-danger small mt-1 ms-2" />
+                </div>
+
+                <!-- CAMPO CONTRASEÑA CON BOTÓN MOSTRAR/OCULTAR -->
+                <div class="mb-4 text-start">
+                    <div class="custom-input-group">
+                        <span class="custom-input-icon"><i class="bi bi-lock"></i></span>
+                        <InputText @bind-Value="loginModel.Password" type="@tipoCampoPassword" class="form-control custom-input-field" placeholder="Contraseña" />
+                        <button type="button" class="btn-eye-toggle ms-2" @onclick="ToggleMostrarPassword">
+                            <i class="bi @(mostrarPassword ? "bi-eye-slash" : "bi-eye")"></i>
+                        </button>
+                    </div>
+                    <ValidationMessage For="@(() => loginModel.Password)" class="text-danger small mt-1 ms-2" />
+                </div>
+
+                <!-- BOTÓN PRINCIPAL "INGRESAR" -->
+                <button type="submit" class="btn btn-login-submit w-100" disabled="@cargando">
+                    @if (cargando)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                        <span>Validando...</span>
+                    }
+                    else
+                    {
+                        <span>Ingresar</span>
+                        <i class="bi bi-arrow-right"></i>
+                    }
+                </button>
+            </EditForm>
+
+            <!-- PIE INSTITUCIONAL DE LA TARJETA -->
+            <div class="login-footer-text">
+                <p class="mb-1 fw-bold">Corporación Unificada Nacional de Educación Superior</p>
+                <p class="mb-0 text-muted">Calidad &bull; Compromiso &bull; Futuro</p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MARCA DE AGUA LATERAL "Tu futuro comienza aquí" (REFERENCIA GRAFICA) -->
+    <div class="slogan-watermark d-none d-lg-block">
+        <div class="slogan-text">Tu futuro<br />comienza aquí</div>
+        <div class="slogan-underline"></div>
+    </div>
+
+</div>
+
+@code {
+    private LoginDto loginModel = new();
+    private string? mensajeError;
+    private bool cargando = false;
+
+    // Control para mostrar u ocultar la contraseña
+    private bool mostrarPassword = false;
+    private string tipoCampoPassword => mostrarPassword ? "text" : "password";
+
+    private void ToggleMostrarPassword()
+    {
+        mostrarPassword = !mostrarPassword;
+    }
+
+    private async Task ProcesarLogin()
+    {
+        cargando = true;
+        mensajeError = null;
+
+        // Invocación a la Web API .NET 9 enviando credenciales (RF-01)
+        var respuesta = await ApiService.LoginAsync(loginModel);
+
+        if (respuesta != null && !string.IsNullOrEmpty(respuesta.Token))
+        {
+            // Almacenar credenciales de sesión en LocalStorage (RF-01, RNF-08)
+            await LocalStorage.SetItemAsync("sge_token", respuesta.Token);
+            await LocalStorage.SetItemAsync("sge_rol", respuesta.Rol);
+            await LocalStorage.SetItemAsync("sge_usuario", respuesta.NombreCompleto);
+
+            // Redireccionar al módulo correspondiente según el rol devuelto por la API (RF-01)
+            if (respuesta.Rol == "Guardia")
+            {
+                Navigation.NavigateTo("/porteria", forceLoad: true);
+            }
+            else if (respuesta.Rol == "SuperAdmin")
+            {
+                Navigation.NavigateTo("/usuarios", forceLoad: true);
+            }
+            else
+            {
+                Navigation.NavigateTo("/estudiantes", forceLoad: true);
+            }
+        }
+        else
+        {
+            // Control de errores de autenticación (RF-03)
+            mensajeError = "Usuario o contraseña incorrectos. Verifique sus credenciales.";
+        }
+
+        cargando = false;
+    }
+}

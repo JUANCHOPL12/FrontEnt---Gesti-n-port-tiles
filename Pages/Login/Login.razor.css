@@ -1,0 +1,202 @@
+/* =========================================================================
+   ESTILOS AISLADOS DE LA PANTALLA DE LOGIN (Login.razor.css)
+   ========================================================================= */
+
+/* Fondo general con la imagen institucional difuminada y overlay suave */
+.login-bg-container {
+    min-height: calc(100vh - 70px);
+    background: linear-gradient(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.85)), 
+                url('images/fondo-edificio.jpg') no-repeat center center / cover;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    padding: 2rem 1rem;
+}
+
+/* Tarjeta principal Flotante */
+.login-card {
+    background-color: #ffffff;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    border: none;
+    z-index: 2;
+}
+
+/* Encabezado verde corporativo institucional con degradado */
+.login-card-header {
+    background: linear-gradient(135deg, #0b4f3f 0%, #06352a 100%);
+    padding: 2.2rem 2rem 1.8rem 2rem;
+    color: #ffffff;
+    text-align: center;
+    position: relative;
+}
+
+.login-header-logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.login-header-logo-img {
+    height: 48px;
+    width: auto;
+    object-fit: contain;
+}
+
+.login-header-divider {
+    width: 1px;
+    height: 38px;
+    background-color: rgba(255, 255, 255, 0.4);
+}
+
+.login-header-text {
+    text-align: left;
+}
+
+.login-header-title {
+    font-size: 1.3rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    line-height: 1;
+}
+
+.login-header-subtitle {
+    font-size: 0.65rem;
+    color: #d1e7dd;
+    line-height: 1.2;
+    margin-top: 3px;
+}
+
+/* Cuerpo de la tarjeta */
+.login-card-body {
+    padding: 2.2rem 2.5rem;
+}
+
+.login-icon-box {
+    color: #0b4f3f;
+    font-size: 3.5rem;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.login-title {
+    color: #0b4f3f;
+    font-weight: 800;
+    font-size: 1.8rem;
+}
+
+.login-description {
+    color: #6c757d;
+    font-size: 0.88rem;
+    margin-bottom: 1.8rem;
+}
+
+/* Cajas de entrada redondeadas y grises (Exactas a la imagen) */
+.custom-input-group {
+    background-color: #f1f3f5;
+    border-radius: 12px;
+    padding: 0.3rem 0.8rem;
+    border: 1px solid #e9ecef;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease-in-out;
+}
+
+.custom-input-group:focus-within {
+    background-color: #ffffff;
+    border-color: #0b4f3f;
+    box-shadow: 0 0 0 0.25rem rgba(11, 79, 63, 0.15);
+}
+
+.custom-input-icon {
+    color: #6c757d;
+    font-size: 1.2rem;
+    margin-right: 0.6rem;
+}
+
+.custom-input-field {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #333333;
+    font-size: 0.95rem;
+    padding: 0.6rem 0.2rem;
+}
+
+.custom-input-field::placeholder {
+    color: #adb5bd;
+}
+
+.btn-eye-toggle {
+    background: none;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 0;
+    font-size: 1.1rem;
+}
+
+.btn-eye-toggle:hover {
+    color: #0b4f3f;
+}
+
+/* Botón principal "Ingresar" */
+.btn-login-submit {
+    background-color: #0b4f3f;
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    padding: 0.85rem;
+    font-weight: 700;
+    font-size: 1.05rem;
+    transition: all 0.2s ease-in-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-login-submit:hover {
+    background-color: #07382d;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 5px 15px rgba(11, 79, 63, 0.3);
+}
+
+.login-footer-text {
+    color: #8d97ad;
+    font-size: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+/* Marca de agua institucional de fondo derecha "Tu futuro comienza aquí" */
+.slogan-watermark {
+    position: absolute;
+    right: 8%;
+    top: 40%;
+    transform: rotate(-8deg);
+    color: #0b4f3f;
+    opacity: 0.75;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    pointer-events: none;
+}
+
+.slogan-text {
+    font-size: 2.2rem;
+    font-weight: 700;
+    font-style: italic;
+}
+
+.slogan-underline {
+    width: 120px;
+    height: 3px;
+    background-color: #ffd700;
+    border-radius: 2px;
+    margin-top: 2px;
+}
