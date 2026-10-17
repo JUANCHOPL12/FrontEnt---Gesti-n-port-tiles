@@ -1,0 +1,244 @@
+@page "/porteria"
+@using FrontEnt_GestionPortatiles_Blazor.DTOs.Accesos
+@using FrontEnt_GestionPortatiles_Blazor.DTOs.Estudiantes
+@using FrontEnt_GestionPortatiles_Blazor.DTOs.Equipos
+@using FrontEnt_GestionPortatiles_Blazor.Servicios
+@inject IApiService ApiService
+@inject IJSRuntime JS
+
+<PageTitle>SGE - Control de Portería</PageTitle>
+
+<div class="porteria-container">
+    <header class="porteria-header">
+        <h1>Control de Portería</h1>
+        <p class="subtitle">Búsqueda rápida y registro de entrada/salida de estudiantes y portátiles (RF-07, RF-08)</p>
+    </header>
+
+    <!-- Búsqueda Acelerada (< 2.0s) (RNF-01) -->
+    <section class="search-card">
+        <form @onsubmit="BuscarEstudiante" class="search-form">
+            <div class="search-input-group">
+                <span class="search-icon">🔍</span>
+                <input type="text" 
+                       class="search-input" 
+                       placeholder="Ingrese el número de documento del estudiante..." 
+                       value="@numeroDocumento" 
+                       @oninput="OnInputDocumento" 
+                       autofocus />
+                
+                <button type="submit" class="btn-search" disabled="@buscando">
+                    @(buscando ? "Verificando..." : "Buscar")
+                </button>
+            </div>
+        </form>
+
+        @if (!string.IsNullOrEmpty(mensajeError))
+        {
+            <div class="alert alert-danger animate-fade mt-3">
+                ⚠️ @mensajeError
+            </div>
+        }
+    </section>
+
+    <!-- Perfil y Verificación Visual de Acceso (RF-07, RNF-05) -->
+    @if (estudiante != null)
+    {
+        <div class="profile-grid animate-fade">
+            <!-- Tarjeta 1: Información Académica y Personal -->
+            <div class="card card-student">
+                <div class="card-header">
+                    <h3>Perfil del Estudiante</h3>
+                    <span class="badge @(estudiante.Estado == "Activo" ? "badge-success" : "badge-danger")">
+                        @estudiante.Estado
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="avatar-wrapper">
+                        <img src="@(string.IsNullOrEmpty(estudiante.FotoPerfilUrl) ? "images/default-avatar.png" : estudiante.FotoPerfilUrl)" 
+                             alt="Foto Perfil" 
+                             class="profile-avatar" />
+                    </div>
+                    <div class="info-list">
+                        <div class="info-item">
+                            <span class="label">Documento:</span>
+                            <span class="value">@estudiante.Documento</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Nombre:</span>
+                            <span class="value highlight">@estudiante.NombreCompleto</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Carrera ID:</span>
+                            <span class="value">@estudiante.IdCarrera</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tarjeta 2: Equipo Portátil Registrado -->
+            <div class="card card-equipment">
+                <div class="card-header">
+                    <h3>Equipo Registrado</h3>
+                    <span class="badge @(estudiante.TieneEquipoRegistrado ? "badge-info" : "badge-secondary")">
+                        @(estudiante.TieneEquipoRegistrado ? "Vinculado" : "Sin Equipo")
+                    </span>
+                </div>
+                <div class="card-body">
+                    @if (estudiante.TieneEquipoRegistrado)
+                    {
+                        <div class="equipment-preview">
+                            <img src="@(string.IsNullOrEmpty(estudiante.FotoEquipoUrl) ? "images/default-laptop.png" : estudiante.FotoEquipoUrl)" 
+                                 alt="Foto del Portátil" 
+                                 class="laptop-img" />
+                        </div>
+                        <div class="info-list">
+                            <div class="info-item">
+                                <span class="label">Serial:</span>
+                                <span class="value serial-code">@estudiante.SerialEquipo</span>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(estudiante.FotoAccesoriosUrl))
+                        {
+                            <div class="accesorios-section mt-3">
+                                <span class="label-section">Accesorios:</span>
+                                <a href="@estudiante.FotoAccesoriosUrl" target="_blank" class="link-foto">📷 Ver Fotografía de Accesorios</a>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="empty-equipment">
+                            <p>El estudiante no registra dispositivos portátiles vinculados en el sistema.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Tarjeta 3: Marcación en Tiempo Real (RF-08, RNF-02) -->
+            <div class="card card-actions">
+                <div class="card-header">
+                    <h3>Registro de Movimiento</h3>
+                </div>
+                <div class="card-body">
+                    <p class="action-desc">Presione el botón correspondiente para guardar la marca de tiempo (Timestamp) del estudiante.</p>
+
+                    <div class="action-buttons">
+                        <button class="btn-action btn-entry" 
+                                @onclick='() => RegistrarMovimiento("Entrada")' 
+                                disabled="@procesando">
+                            🟢 Registrar ENTRADA
+                        </button>
+                        <button class="btn-action btn-exit" 
+                                @onclick='() => RegistrarMovimiento("Salida")' 
+                                disabled="@procesando">
+                            🔴 Registrar SALIDA
+                        </button>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(mensajeExito))
+                    {
+                        <div class="alert alert-success animate-fade mt-3">
+                            ✅ @mensajeExito
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private string numeroDocumento = string.Empty;
+    private string mensajeError = string.Empty;
+    private string mensajeExito = string.Empty;
+    private bool buscando = false;
+    private bool procesando = false;
+
+    private EstudianteDetalleDto? estudiante;
+
+    // Evento reactivo: limpia la tarjeta tan pronto como el usuario escribe o borra un número
+    private void OnInputDocumento(ChangeEventArgs e)
+    {
+        numeroDocumento = e.Value?.ToString() ?? string.Empty;
+
+        // Si el valor ingresado cambia respecto al documento actualmente cargado, ocultamos la tarjeta
+        if (estudiante != null && estudiante.Documento != numeroDocumento)
+        {
+            estudiante = null;
+            mensajeError = string.Empty;
+            mensajeExito = string.Empty;
+        }
+    }
+
+    private async Task BuscarEstudiante()
+    {
+        mensajeError = string.Empty;
+        mensajeExito = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(numeroDocumento))
+        {
+            mensajeError = "Por favor, ingrese un número de documento.";
+            estudiante = null;
+            return;
+        }
+
+        buscando = true;
+        try
+        {
+            // GET /api/RegistroAccesos/verificar/{numeroDocumento} (RF-07, RNF-01)
+            estudiante = await ApiService.VerificarEstudianteAsync(numeroDocumento);
+            if (estudiante == null)
+            {
+                mensajeError = "No se encontró ningún estudiante con el documento ingresado.";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al realizar la consulta: {ex.Message}";
+        }
+        finally
+        {
+            buscando = false;
+        }
+    }
+
+    private async Task RegistrarMovimiento(string tipoMovimiento)
+    {
+        if (estudiante == null) return;
+
+        procesando = true;
+        mensajeExito = string.Empty;
+        mensajeError = string.Empty;
+
+        var dto = new RegistroAccesoCreateDto
+        {
+            IdEstudiante = estudiante.IdEstudiante,
+            IdEquipo = null,
+            IdPorteria = 1,
+            TipoMovimiento = tipoMovimiento
+        };
+
+        try
+        {
+            // POST /api/RegistroAccesos (RF-08, RNF-02)
+            bool resultado = await ApiService.RegistrarAccesoAsync(dto);
+            if (resultado)
+            {
+                mensajeExito = $"¡Movimiento de {tipoMovimiento.ToUpper()} registrado con éxito!";
+            }
+            else
+            {
+                mensajeError = "No se pudo registrar el acceso en el servidor.";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error de comunicación: {ex.Message}";
+        }
+        finally
+        {
+            procesando = false;
+        }
+    }
+}

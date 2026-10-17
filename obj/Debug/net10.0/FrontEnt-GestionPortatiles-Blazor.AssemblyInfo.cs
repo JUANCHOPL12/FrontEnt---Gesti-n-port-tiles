@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("FrontEnt-GestionPortatiles-Blazor")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e663471aeaedcc1c75fd7abd9940e3a402a3f552")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f07ae0f47bd38ccd2540738e42accfacccea6c77")]
 [assembly: System.Reflection.AssemblyProductAttribute("FrontEnt-GestionPortatiles-Blazor")]
 [assembly: System.Reflection.AssemblyTitleAttribute("FrontEnt-GestionPortatiles-Blazor")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

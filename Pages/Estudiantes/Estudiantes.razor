@@ -1,0 +1,349 @@
+@page "/estudiantes"
+@using FrontEnt_GestionPortatiles_Blazor.DTOs.Estudiantes
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<PageTitle>SGE - Gestión de Estudiantes y Equipos</PageTitle>
+
+<div class="estudiantes-container">
+    <!-- Encabezado del Módulo -->
+    <header class="module-header">
+        <div>
+            <h1>Gestión de Estudiantes y Equipos</h1>
+            <p class="subtitle">Administración de datos personales, portátiles vinculados y estado institucional (RF-05, RF-06, RF-09)</p>
+        </div>
+        <button class="btn-primary" @onclick="AbrirModalCrear">
+            ➕ Registrar Nuevo Estudiante
+        </button>
+    </header>
+
+    <!-- Tarjeta de Filtro de Búsqueda -->
+    <section class="filter-card">
+        <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" 
+                   placeholder="Buscar por documento, nombres o apellidos..." 
+                   @bind="criterioBusqueda" 
+                   @bind:event="oninput" 
+                   @onkeyup="FiltrarLista" />
+        </div>
+    </section>
+
+    <!-- Tabla Principal de Estudiantes (RF-05, RF-09) -->
+    <section class="table-card">
+        @if (cargando)
+        {
+            <div class="loading-spinner">
+                <p>Cargando información de estudiantes...</p>
+            </div>
+        }
+        else if (estudiantesFiltrados == null || !estudiantesFiltrados.Any())
+        {
+            <div class="empty-state">
+                <p>No se encontraron registros de estudiantes.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Foto</th>
+                            <th>Documento</th>
+                            <th>Estudiante</th>
+                            <th>Contacto</th>
+                            <th>Equipo / Serial</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var est in estudiantesFiltrados)
+                        {
+                            <tr>
+                                <td>
+                                    <img src="@(string.IsNullOrEmpty(est.FotoPerfilUrl) ? "images/default-avatar.png" : est.FotoPerfilUrl)" 
+                                         alt="Perfil" 
+                                         class="table-avatar" />
+                                </td>
+                                <td><strong>@est.Documento</strong></td>
+                                <td>
+                                    <div class="student-name">@est.Nombres @est.Apellidos</div>
+                                </td>
+                                <td>
+                                    <small>📧 @(est.Correo ?? "N/A")</small><br />
+                                    <small>📞 @(est.Telefono ?? "N/A")</small>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(est.SerialEquipo))
+                                    {
+                                        <span class="serial-badge">💻 @est.SerialEquipo</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Sin Equipo</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="badge @(est.Estado == "Activo" ? "badge-success" : "badge-danger")">
+                                        @est.Estado
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="action-buttons-inline">
+                                        <button class="btn-icon btn-edit" title="Editar Estudiante" @onclick="() => AbrirModalEditar(est)">✏️</button>
+                                        <button class="btn-icon btn-toggle" title="Cambiar Estado (Activo/Inactivo)" @onclick="() => CambiarEstadoEstudiante(est)">
+                                            @(est.Estado == "Activo" ? "🚫" : "✅")
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+</div>
+
+<!-- MODAL FORMULARIO: Crear / Editar Estudiante y Equipo (RF-05, RF-06) -->
+@if (mostrarModal)
+{
+    <div class="modal-backdrop animate-fade">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>@(esEdicion ? "Editar Estudiante" : "Registrar Estudiante y Equipo")</h3>
+                    <button class="btn-close" @onclick="CerrarModal">✖</button>
+                </div>
+                <EditForm Model="formModel" OnValidSubmit="GuardarEstudiante">
+                    <DataAnnotationsValidator />
+
+                    <div class="modal-body">
+                        <!-- Sección 1: Datos Personales del Alumno -->
+                        <div class="form-section-title">👤 Datos Personales</div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Documento *</label>
+                                <InputText class="form-control" @bind-Value="formModel.Documento" disabled="@esEdicion" />
+                                <ValidationMessage For="@(() => formModel.Documento)" />
+                            </div>
+                            <div class="form-group">
+                                <label>ID Carrera *</label>
+                                <InputNumber class="form-control" @bind-Value="formModel.IdCarrera" />
+                                <ValidationMessage For="@(() => formModel.IdCarrera)" />
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Nombres *</label>
+                                <InputText class="form-control" @bind-Value="formModel.Nombres" />
+                                <ValidationMessage For="@(() => formModel.Nombres)" />
+                            </div>
+                            <div class="form-group">
+                                <label>Apellidos *</label>
+                                <InputText class="form-control" @bind-Value="formModel.Apellidos" />
+                                <ValidationMessage For="@(() => formModel.Apellidos)" />
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Teléfono</label>
+                                <InputText class="form-control" @bind-Value="formModel.Telefono" />
+                            </div>
+                            <div class="form-group">
+                                <label>Correo Electrónico</label>
+                                <InputText class="form-control" @bind-Value="formModel.Correo" />
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Foto de Perfil (URL/Ruta)</label>
+                            <InputText class="form-control" @bind-Value="formModel.FotoPerfilUrl" placeholder="https://..." />
+                        </div>
+
+                        <!-- Sección 2: Datos del Portátil y Accesorios (RF-06) -->
+                        <div class="form-section-title mt-3">💻 Datos del Portátil y Accesorios</div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Número de Serial</label>
+                                <InputText class="form-control" @bind-Value="formModel.SerialEquipo" placeholder="Ej: SN-99812-X" />
+                            </div>
+                            <div class="form-group">
+                                <label>ID Marca</label>
+                                <InputNumber class="form-control" @bind-Value="formModel.IdMarca" />
+                            </div>
+                            <div class="form-group">
+                                <label>ID Tipo</label>
+                                <InputNumber class="form-control" @bind-Value="formModel.IdTipo" />
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>URL Foto Portátil</label>
+                                <InputText class="form-control" @bind-Value="formModel.FotoEquipoUrl" placeholder="https://..." />
+                            </div>
+                            <div class="form-group">
+                                <label>URL Foto Accesorios</label>
+                                <InputText class="form-control" @bind-Value="formModel.FotoAccesoriosUrl" placeholder="https://..." />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" @onclick="CerrarModal">Cancelar</button>
+                        <button type="submit" class="btn-primary" disabled="@guardando">
+                            @(guardando ? "Guardando..." : "Guardar Registro")
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<EstudianteReadDto> listaEstudiantes = new();
+    private List<EstudianteReadDto> estudiantesFiltrados = new();
+    private EstudianteCreateUpdateDto formModel = new();
+
+    private string criterioBusqueda = string.Empty;
+    private bool cargando = true;
+    private bool mostrarModal = false;
+    private bool esEdicion = false;
+    private bool guardando = false;
+    private int idEstudianteEditar = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarEstudiantes();
+    }
+
+    private async Task CargarEstudiantes()
+    {
+        cargando = true;
+        try
+        {
+            var result = await Http.GetFromJsonAsync<List<EstudianteReadDto>>("api/Estudiantes");
+            if (result != null)
+            {
+                listaEstudiantes = result;
+                FiltrarLista();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al consultar estudiantes: {ex.Message}");
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void FiltrarLista()
+    {
+        if (string.IsNullOrWhiteSpace(criterioBusqueda))
+        {
+            estudiantesFiltrados = listaEstudiantes.ToList();
+        }
+        else
+        {
+            var term = criterioBusqueda.ToLower();
+            estudiantesFiltrados = listaEstudiantes.Where(e =>
+                e.Documento.ToLower().Contains(term) ||
+                e.Nombres.ToLower().Contains(term) ||
+                e.Apellidos.ToLower().Contains(term)
+            ).ToList();
+        }
+    }
+
+    private void AbrirModalCrear()
+    {
+        formModel = new EstudianteCreateUpdateDto();
+        esEdicion = false;
+        mostrarModal = true;
+    }
+
+    private void AbrirModalEditar(EstudianteReadDto estudiante)
+    {
+        idEstudianteEditar = estudiante.IdEstudiante;
+        formModel = new EstudianteCreateUpdateDto
+        {
+            Documento = estudiante.Documento,
+            Nombres = estudiante.Nombres,
+            Apellidos = estudiante.Apellidos,
+            Telefono = estudiante.Telefono,
+            Correo = estudiante.Correo,
+            IdCarrera = estudiante.IdCarrera,
+            FotoPerfilUrl = estudiante.FotoPerfilUrl,
+            SerialEquipo = estudiante.SerialEquipo,
+            IdMarca = estudiante.IdMarca,
+            IdTipo = estudiante.IdTipo,
+            FotoEquipoUrl = estudiante.FotoEquipoUrl,
+            FotoAccesoriosUrl = estudiante.FotoAccesoriosUrl
+        };
+        esEdicion = true;
+        mostrarModal = true;
+    }
+
+    private void CerrarModal()
+    {
+        mostrarModal = false;
+    }
+
+    private async Task GuardarEstudiante()
+    {
+        guardando = true;
+        try
+        {
+            HttpResponseMessage response;
+            if (esEdicion)
+            {
+                // PUT /api/Estudiantes/{id} (RF-05)
+                response = await Http.PutAsJsonAsync($"api/Estudiantes/{idEstudianteEditar}", formModel);
+            }
+            else
+            {
+                // POST /api/Estudiantes (RF-05, RF-06)
+                response = await Http.PostAsJsonAsync("api/Estudiantes", formModel);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                mostrarModal = false;
+                await CargarEstudiantes();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al guardar estudiante: {ex.Message}");
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private async Task CambiarEstadoEstudiante(EstudianteReadDto estudiante)
+    {
+        var nuevoEstado = estudiante.Estado == "Activo" ? "Inactivo" : "Activo";
+        try
+        {
+            // PATCH /api/Estudiantes/{id}/estado (RF-09)
+            var response = await Http.PatchAsJsonAsync($"api/Estudiantes/{estudiante.IdEstudiante}/estado", nuevoEstado);
+            if (response.IsSuccessStatusCode)
+            {
+                estudiante.Estado = nuevoEstado;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cambiar estado: {ex.Message}");
+        }
+    }
+}

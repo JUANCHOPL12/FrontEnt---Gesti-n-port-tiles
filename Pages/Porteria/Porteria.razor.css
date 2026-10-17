@@ -1,0 +1,276 @@
+/* Paleta Institucional: Verde (#0b4f3f), Dorado (#ffd700) */
+.porteria-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.porteria-header {
+    margin-bottom: 1.5rem;
+}
+
+.porteria-header h1 {
+    color: #0b4f3f;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.porteria-header .subtitle {
+    color: #6c757d;
+    font-size: 0.95rem;
+}
+
+/* Tarjeta de Búsqueda Rápida */
+.search-card {
+    background-color: #ffffff;
+    border-radius: 18px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    margin-bottom: 2rem;
+}
+
+.search-input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.search-icon {
+    font-size: 1.2rem;
+}
+
+.search-input {
+    flex: 1;
+    padding: 0.8rem 1.2rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.3s ease;
+}
+
+.search-input:focus {
+    border-color: #0b4f3f;
+}
+
+.btn-search {
+    background-color: #0b4f3f;
+    color: #ffffff;
+    border: none;
+    padding: 0.8rem 1.8rem;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-search:hover {
+    background-color: #083c30;
+}
+
+/* Layout Responsivo para Tarjetas de Perfil */
+.profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+}
+
+.card {
+    background-color: #ffffff;
+    border-radius: 18px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.card-header h3 {
+    color: #0b4f3f;
+    font-size: 1.15rem;
+    margin: 0;
+}
+
+/* Badges de Estado */
+.badge {
+    padding: 0.3rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge-success { background-color: #e6f4ea; color: #1e7e34; }
+.badge-danger { background-color: #fce8e6; color: #d93025; }
+.badge-info { background-color: #e8f0fe; color: #1a73e8; }
+.badge-secondary { background-color: #f1f3f4; color: #5f6368; }
+
+/* Fotos e Imágenes */
+.avatar-wrapper, .equipment-preview {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.profile-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #ffd700;
+}
+
+.laptop-img {
+    width: 100%;
+    max-height: 150px;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+/* Lista de Datos */
+.info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.95rem;
+}
+
+.info-item .label {
+    color: #6c757d;
+}
+
+.info-item .value {
+    font-weight: 600;
+    color: #212529;
+}
+
+.info-item .highlight {
+    color: #0b4f3f;
+}
+
+.serial-code {
+    font-family: monospace;
+    background-color: #f8f9fa;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+}
+
+/* Sección de Accesorios */
+.accesorios-section {
+    border-top: 1px dashed #e2e8f0;
+    padding-top: 0.8rem;
+}
+
+.label-section {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #0b4f3f;
+}
+
+.accesorios-list {
+    list-style: none;
+    padding-left: 0;
+    margin-top: 0.4rem;
+    font-size: 0.88rem;
+}
+
+.accesorios-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.3rem;
+}
+
+.link-foto {
+    color: #0b4f3f;
+    text-decoration: none;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.link-foto:hover {
+    text-decoration: underline;
+}
+
+/* Botones de Acción Directa */
+.action-desc {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-bottom: 1rem;
+}
+
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.btn-action {
+    width: 100%;
+    padding: 1rem;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.1s ease, filter 0.2s ease;
+}
+
+.btn-action:active {
+    transform: scale(0.98);
+}
+
+.btn-entry {
+    background-color: #0b4f3f;
+    color: #ffffff;
+}
+
+.btn-entry:hover {
+    filter: brightness(1.1);
+}
+
+.btn-exit {
+    background-color: #d93025;
+    color: #ffffff;
+}
+
+.btn-exit:hover {
+    filter: brightness(1.1);
+}
+
+/* Mensajes y Alertas */
+.alert {
+    padding: 0.8rem 1rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+}
+
+.alert-danger { background-color: #f8d7da; color: #721c24; }
+.alert-success { background-color: #d4edda; color: #155724; }
+
+.empty-equipment {
+    text-align: center;
+    color: #6c757d;
+    padding: 1rem 0;
+}
+
+.animate-fade {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}

@@ -57,6 +57,22 @@ build_metadata.AdditionalFiles.CssScope = b-m8w1eliey9
 build_metadata.AdditionalFiles.TargetPath = TGF5b3V0XE5hdk1lbnUucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = b-z6dgrszuqb
 
+[C:/Users/JUANCHO/FrontEnt-GestionPortatiles-Blazor/Pages/Autoservicio/Autoservicio.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQXV0b3NlcnZpY2lvXEF1dG9zZXJ2aWNpby5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-iximruq422
+
+[C:/Users/JUANCHO/FrontEnt-GestionPortatiles-Blazor/Pages/Estudiantes/Estudiantes.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRXN0dWRpYW50ZXNcRXN0dWRpYW50ZXMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-svfmnsxbyb
+
 [C:/Users/JUANCHO/FrontEnt-GestionPortatiles-Blazor/Pages/Login/Login.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTG9naW5cTG9naW4ucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = b-7g8sh7c6oo
+
+[C:/Users/JUANCHO/FrontEnt-GestionPortatiles-Blazor/Pages/Porteria/Porteria.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUG9ydGVyaWFcUG9ydGVyaWEucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-siw0tl32jj
+
+[C:/Users/JUANCHO/FrontEnt-GestionPortatiles-Blazor/Pages/Usuarios/Usuarios.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVXN1YXJpb3NcVXN1YXJpb3MucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-xzg51j6fmq

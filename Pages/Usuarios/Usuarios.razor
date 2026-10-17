@@ -1,0 +1,317 @@
+@page "/usuarios"
+@using FrontEnt_GestionPortatiles_Blazor.DTOs.Usuarios
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<PageTitle>SGE - Administración de Cuentas</PageTitle>
+
+<div class="usuarios-container">
+    <!-- Encabezado del Módulo (RF-10, RNF-08) -->
+    <header class="module-header">
+        <div>
+            <h1>Administración de Cuentas de Usuario</h1>
+            <p class="subtitle">Gestión exclusiva para SuperAdmin: Creación, edición, roles (RBAC) y estado de cuentas (RF-10, RNF-08)</p>
+        </div>
+        <button class="btn-primary" @onclick="AbrirModalCrear">
+            👤 Crear Nuevo Usuario
+        </button>
+    </header>
+
+    <!-- Tabla de Listado de Usuarios -->
+    <section class="table-card">
+        @if (cargando)
+        {
+            <div class="loading-spinner">
+                <p>Cargando lista de usuarios del sistema...</p>
+            </div>
+        }
+        else if (listaUsuarios == null || !listaUsuarios.Any())
+        {
+            <div class="empty-state">
+                <p>No existen cuentas de usuarios registradas en la base de datos.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Usuario</th>
+                            <th>Nombre Completo</th>
+                            <th>Rol Asignado</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in listaUsuarios)
+                        {
+                            <tr>
+                                <td><strong>#@user.IdUsuario</strong></td>
+                                <td>@user.NombreUsuario</td>
+                                <td>@user.NombreCompleto</td>
+                                <td>
+                                    <span class="badge-role @ObtenerClaseRol(user.NombreRol)">
+                                        🔑 @user.NombreRol
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge @(user.Estado == "Activo" ? "badge-success" : "badge-danger")">
+                                        @user.Estado
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="action-buttons-inline">
+                                        <button class="btn-icon btn-edit" title="Editar Usuario" @onclick="() => AbrirModalEditar(user)">✏️</button>
+                                        <button class="btn-icon btn-delete" title="Desactivar / Eliminar" @onclick="() => DesactivarUsuario(user.IdUsuario)">🗑️</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+</div>
+
+<!-- MODAL CREACIÓN DE USUARIO (RF-10) -->
+@if (mostrarModalCrear)
+{
+    <div class="modal-backdrop animate-fade">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Crear Nueva Cuenta</h3>
+                    <button class="btn-close" @onclick="CerrarModales">✖</button>
+                </div>
+                <EditForm Model="createDto" OnValidSubmit="GuardarNuevoUsuario">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Nombre de Usuario *</label>
+                            <InputText class="form-control" @bind-Value="createDto.NombreUsuario" placeholder="Ej: jguardia" />
+                            <ValidationMessage For="@(() => createDto.NombreUsuario)" />
+                        </div>
+
+                        <div class="form-group">
+                            <label>Contraseña *</label>
+                            <InputText type="password" class="form-control" @bind-Value="createDto.Password" placeholder="Mínimo 6 caracteres" />
+                            <ValidationMessage For="@(() => createDto.Password)" />
+                        </div>
+
+                        <div class="form-group">
+                            <label>Nombre Completo *</label>
+                            <InputText class="form-control" @bind-Value="createDto.NombreCompleto" placeholder="Ej: Juan Pérez" />
+                            <ValidationMessage For="@(() => createDto.NombreCompleto)" />
+                        </div>
+
+                        <div class="form-group">
+                            <label>Rol Asignado *</label>
+                            <InputSelect class="form-control" @bind-Value="createDto.IdRol">
+                                <option value="0">-- Seleccione un Rol --</option>
+                                <option value="1">Guardia</option>
+                                <option value="2">Administrador</option>
+                            </InputSelect>
+                            <ValidationMessage For="@(() => createDto.IdRol)" />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" @onclick="CerrarModales">Cancelar</button>
+                        <button type="submit" class="btn-primary" disabled="@procesando">
+                            @(procesando ? "Guardando..." : "Crear Usuario")
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- MODAL EDICIÓN DE USUARIO (RF-10) -->
+@if (mostrarModalEditar)
+{
+    <div class="modal-backdrop animate-fade">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Editar Cuenta de Usuario</h3>
+                    <button class="btn-close" @onclick="CerrarModales">✖</button>
+                </div>
+                <EditForm Model="updateDto" OnValidSubmit="GuardarEdicionUsuario">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Nombre Completo *</label>
+                            <InputText class="form-control" @bind-Value="updateDto.NombreCompleto" />
+                            <ValidationMessage For="@(() => updateDto.NombreCompleto)" />
+                        </div>
+
+                        <div class="form-group">
+                            <label>Restablecer Contraseña (Opcional)</label>
+                            <InputText type="password" class="form-control" @bind-Value="updateDto.Password" placeholder="Dejar en blanco para no modificar" />
+                        </div>
+
+                        <div class="form-group">
+                            <label>Estado de la Cuenta *</label>
+                            <InputSelect class="form-control" @bind-Value="updateDto.Estado">
+                                <option value="Activo">Activo</option>
+                                <option value="Inactivo">Inactivo</option>
+                            </InputSelect>
+                            <ValidationMessage For="@(() => updateDto.Estado)" />
+                        </div>
+
+                        <div class="form-group">
+                            <label>Rol Asignado *</label>
+                            <InputSelect class="form-control" @bind-Value="updateDto.IdRol">
+                                <option value="1">Guardia</option>
+                                <option value="2">Administrador</option>
+                            </InputSelect>
+                            <ValidationMessage For="@(() => updateDto.IdRol)" />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" @onclick="CerrarModales">Cancelar</button>
+                        <button type="submit" class="btn-primary" disabled="@procesando">
+                            @(procesando ? "Actualizando..." : "Actualizar Usuario")
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<UsuarioReadDto> listaUsuarios = new();
+    private UsuarioCreateDto createDto = new();
+    private UsuarioUpdateDto updateDto = new();
+
+    private bool cargando = true;
+    private bool procesando = false;
+    private bool mostrarModalCrear = false;
+    private bool mostrarModalEditar = false;
+    private int idUsuarioSeleccionado = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarUsuarios();
+    }
+
+    private async Task CargarUsuarios()
+    {
+        cargando = true;
+        try
+        {
+            var res = await Http.GetFromJsonAsync<List<UsuarioReadDto>>("api/Usuarios");
+            if (res != null) listaUsuarios = res;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al obtener la lista de usuarios: {ex.Message}");
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void AbrirModalCrear()
+    {
+        createDto = new UsuarioCreateDto();
+        mostrarModalCrear = true;
+    }
+
+    private void AbrirModalEditar(UsuarioReadDto user)
+    {
+        idUsuarioSeleccionado = user.IdUsuario;
+        updateDto = new UsuarioUpdateDto
+        {
+            NombreCompleto = user.NombreCompleto,
+            Estado = user.Estado,
+            IdRol = user.IdRol
+        };
+        mostrarModalEditar = true;
+    }
+
+    private void CerrarModales()
+    {
+        mostrarModalCrear = false;
+        mostrarModalEditar = false;
+    }
+
+    private async Task GuardarNuevoUsuario()
+    {
+        procesando = true;
+        try
+        {
+            // POST /api/Usuarios (RF-10)
+            var response = await Http.PostAsJsonAsync("api/Usuarios", createDto);
+            if (response.IsSuccessStatusCode)
+            {
+                CerrarModales();
+                await CargarUsuarios();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al crear el usuario: {ex.Message}");
+        }
+        finally
+        {
+            procesando = false;
+        }
+    }
+
+    private async Task GuardarEdicionUsuario()
+    {
+        procesando = true;
+        try
+        {
+            // PUT /api/Usuarios/{id} (RF-10)
+            var response = await Http.PutAsJsonAsync($"api/Usuarios/{idUsuarioSeleccionado}", updateDto);
+            if (response.IsSuccessStatusCode)
+            {
+                CerrarModales();
+                await CargarUsuarios();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al editar el usuario: {ex.Message}");
+        }
+        finally
+        {
+            procesando = false;
+        }
+    }
+
+    private async Task DesactivarUsuario(int idUsuario)
+    {
+        bool confirmado = await JS.InvokeAsync<bool>("confirm", "¿Está seguro de que desea desactivar esta cuenta de usuario?");
+        if (!confirmado) return;
+
+        try
+        {
+            // DELETE /api/Usuarios/{id} (RF-10)
+            var response = await Http.DeleteAsync($"api/Usuarios/{idUsuario}");
+            if (response.IsSuccessStatusCode)
+            {
+                await CargarUsuarios();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al desactivar el usuario: {ex.Message}");
+        }
+    }
+
+    private string ObtenerClaseRol(string rol) => rol.ToLower() switch
+    {
+        "superadmin" => "role-superadmin",
+        "administrador" => "role-admin",
+        _ => "role-guardia"
+    };
+}

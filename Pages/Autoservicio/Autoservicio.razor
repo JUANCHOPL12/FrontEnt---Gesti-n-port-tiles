@@ -1,0 +1,135 @@
+@page "/autoservicio"
+@using FrontEnt_GestionPortatiles_Blazor.DTOs.Estudiantes
+@inject HttpClient Http
+
+<PageTitle>SGE - Consulta de Autoservicio</PageTitle>
+
+<div class="autoservicio-container">
+    <div class="kiosk-card animate-fade">
+        <!-- Encabezado del Módulo de Autoservicio -->
+        <header class="kiosk-header">
+            <div class="logo-badge">🎓 SGE - Consulta Pública</div>
+            <h1>Consulta de Estudiante</h1>
+            <p>Ingrese su número de documento para consultar su estado académico y equipos vinculados.</p>
+        </header>
+
+        <!-- Paso 1: Formulario de Búsqueda Rápida (RF-04, RNF-06) -->
+        <form @onsubmit="ConsultarEstudiante" class="kiosk-form">
+            <div class="input-container">
+                <input type="text" 
+                       class="kiosk-input" 
+                       placeholder="Ingrese número de documento..." 
+                       @bind="numeroDocumento" 
+                       @bind:event="oninput" 
+                       autofocus />
+                <button type="submit" class="btn-kiosk" disabled="@buscando">
+                    @(buscando ? "Consultando..." : "Consultar")
+                </button>
+            </div>
+        </form>
+
+        @if (!string.IsNullOrEmpty(mensajeError))
+        {
+            <div class="alert alert-warning animate-fade mt-3">
+                ⚠️ @mensajeError
+            </div>
+        }
+
+        <!-- Paso 2: Despliegue Directo de Resultados (RF-04) -->
+        @if (estudiante != null)
+        {
+            <div class="result-card animate-fade">
+                <div class="result-header">
+                    <img src="@(string.IsNullOrEmpty(estudiante.FotoPerfilUrl) ? "images/default-avatar.png" : estudiante.FotoPerfilUrl)" 
+                         alt="Foto de Perfil" 
+                         class="kiosk-avatar" />
+                    <div class="result-title-group">
+                        <h2>@estudiante.NombreCompleto</h2>
+                        <span class="badge @(estudiante.Estado == "Activo" ? "badge-success" : "badge-danger")">
+                            @estudiante.Estado
+                        </span>
+                    </div>
+                </div>
+
+                <div class="result-details">
+                    <div class="detail-row">
+                        <span class="label">Documento:</span>
+                        <strong class="value">@estudiante.Documento</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Equipo Registrado:</span>
+                        <strong class="value highlight">
+                            @(estudiante.TieneEquipoRegistrado ? $"Serial: {estudiante.SerialEquipo}" : "Sin equipo registrado")
+                        </strong>
+                    </div>
+                </div>
+
+                <!-- Previsualización de la Fotografía del Equipo -->
+                @if (estudiante.TieneEquipoRegistrado && !string.IsNullOrEmpty(estudiante.FotoEquipoUrl))
+                {
+                    <div class="equipment-preview-kiosk">
+                        <p class="preview-title">Foto del Portátil Registrado:</p>
+                        <img src="@estudiante.FotoEquipoUrl" alt="Equipo Portátil" class="kiosk-laptop-img" />
+                    </div>
+                }
+
+                <button class="btn-reset" @onclick="LimpiarConsulta">🔄 Nueva Consulta</button>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string numeroDocumento = string.Empty;
+    private string mensajeError = string.Empty;
+    private bool buscando = false;
+    private EstudianteDetalleDto? estudiante;
+
+    private async Task ConsultarEstudiante()
+    {
+        mensajeError = string.Empty;
+        estudiante = null;
+
+        if (string.IsNullOrWhiteSpace(numeroDocumento))
+        {
+            mensajeError = "Por favor, ingrese un número de documento válido.";
+            return;
+        }
+
+        buscando = true;
+        try
+        {
+            // GET /api/Estudiantes/documento/{numeroDocumento} (RF-04)
+            var response = await Http.GetAsync($"api/Estudiantes/documento/{numeroDocumento}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                estudiante = await response.Content.ReadFromJsonAsync<EstudianteDetalleDto>();
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                // Manejo de mensaje según RNF-06
+                mensajeError = "El número de documento no corresponde a un registro existente.";
+            }
+            else
+            {
+                mensajeError = "Ocurrió un error al procesar la consulta. Intente nuevamente.";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error de comunicación con el servidor: {ex.Message}";
+        }
+        finally
+        {
+            buscando = false;
+        }
+    }
+
+    private void LimpiarConsulta()
+    {
+        numeroDocumento = string.Empty;
+        estudiante = null;
+        mensajeError = string.Empty;
+    }
+}
