@@ -17,7 +17,8 @@ namespace FrontEnt_GestionPortatiles_Blazor.Servicios
         }
 
         // =========================================================================
-        // 1. AUTENTICACIÓN Y SEGURIDAD (RF-01, RF-03)
+        // 1. MÓDULO DE AUTENTICACIÓN (RF-01, RF-03)
+        // Swagger: POST /api/Auth/login
         // =========================================================================
         public async Task<LoginResponseDto?> LoginAsync(LoginDto loginDto)
         {
@@ -37,14 +38,15 @@ namespace FrontEnt_GestionPortatiles_Blazor.Servicios
         }
 
         // =========================================================================
-        // 2. PORTERÍA Y CONTROL DE ACCESOS (RF-04, RF-07, RF-08, RNF-01, RNF-02)
+        // 2. MÓDULO DE CONTROL DE PORTERÍA (RF-07, RF-08, RNF-01)
+        // Swagger: GET /api/RegistroAccesos/verificar/{numeroDocumento}
+        // Swagger: POST /api/RegistroAccesos
         // =========================================================================
-        public async Task<EstudianteDetalleDto?> VerificarEstudianteAsync(string documento)
+        public async Task<EstudianteDetalleDto?> VerificarEstudianteAsync(string numeroDocumento)
         {
             try
             {
-                // Búsqueda acelerada por documento (< 2.0s) (RNF-01)
-                return await _http.GetFromJsonAsync<EstudianteDetalleDto>($"api/Porteria/verificar/{documento}");
+                return await _http.GetFromJsonAsync<EstudianteDetalleDto>($"api/RegistroAccesos/verificar/{numeroDocumento}");
             }
             catch
             {
@@ -56,8 +58,7 @@ namespace FrontEnt_GestionPortatiles_Blazor.Servicios
         {
             try
             {
-                // Registra entrada/salida procesando concurrencia (< 3.0s) (RNF-02)
-                var response = await _http.PostAsJsonAsync("api/Porteria/registrar-acceso", accesoDto);
+                var response = await _http.PostAsJsonAsync("api/RegistroAccesos", accesoDto);
                 return response.IsSuccessStatusCode;
             }
             catch
@@ -66,21 +67,13 @@ namespace FrontEnt_GestionPortatiles_Blazor.Servicios
             }
         }
 
-        public async Task<List<RegistroAccesoReadDto>> ObtenerHistorialAccesosAsync()
-        {
-            try
-            {
-                var resultado = await _http.GetFromJsonAsync<List<RegistroAccesoReadDto>>("api/Porteria/historial");
-                return resultado ?? new List<RegistroAccesoReadDto>();
-            }
-            catch
-            {
-                return new List<RegistroAccesoReadDto>();
-            }
-        }
-
         // =========================================================================
-        // 3. GESTIÓN DE ESTUDIANTES Y REGISTRO (RF-05, RF-06, RF-09)
+        // 3. MÓDULO DE GESTIÓN Y BÚSQUEDA DE ESTUDIANTES (RF-04, RF-05, RF-09)
+        // Swagger: GET /api/Estudiantes
+        // Swagger: GET /api/Estudiantes/buscar/{documento}
+        // Swagger: POST /api/Estudiantes
+        // Swagger: PUT /api/Estudiantes/{id}
+        // Swagger: PATCH /api/Estudiantes/{id}/estado
         // =========================================================================
         public async Task<List<EstudianteReadDto>> ObtenerEstudiantesAsync()
         {
@@ -95,11 +88,11 @@ namespace FrontEnt_GestionPortatiles_Blazor.Servicios
             }
         }
 
-        public async Task<EstudianteReadDto?> ObtenerEstudiantePorIdAsync(int id)
+        public async Task<EstudianteDetalleDto?> ConsultarEstudiantePorDocumentoAsync(string documento)
         {
             try
             {
-                return await _http.GetFromJsonAsync<EstudianteReadDto>($"api/Estudiantes/{id}");
+                return await _http.GetFromJsonAsync<EstudianteDetalleDto>($"api/Estudiantes/buscar/{documento}");
             }
             catch
             {
@@ -137,7 +130,7 @@ namespace FrontEnt_GestionPortatiles_Blazor.Servicios
         {
             try
             {
-                var response = await _http.PatchAsync($"api/Estudiantes/{id}/estado?nuevoEstado={nuevoEstado}", null);
+                var response = await _http.PatchAsJsonAsync($"api/Estudiantes/{id}/estado", nuevoEstado);
                 return response.IsSuccessStatusCode;
             }
             catch
@@ -147,8 +140,24 @@ namespace FrontEnt_GestionPortatiles_Blazor.Servicios
         }
 
         // =========================================================================
-        // 4. GESTIÓN DE EQUIPOS Y ACCESORIOS (RF-05, RF-06)
+        // 4. MÓDULO DE EQUIPOS (RF-05, RF-06)
+        // Swagger: GET /api/Equipos/estudiante/{numeroDocumento}
+        // Swagger: POST /api/Equipos
+        // Swagger: PATCH /api/Equipos/{id}/estado
         // =========================================================================
+        public async Task<List<EquipoReadDto>> ObtenerEquiposPorEstudianteAsync(string numeroDocumento)
+        {
+            try
+            {
+                var resultado = await _http.GetFromJsonAsync<List<EquipoReadDto>>($"api/Equipos/estudiante/{numeroDocumento}");
+                return resultado ?? new List<EquipoReadDto>();
+            }
+            catch
+            {
+                return new List<EquipoReadDto>();
+            }
+        }
+
         public async Task<bool> RegistrarEquipoAsync(CrearEquipoDto equipoDto)
         {
             try
@@ -162,21 +171,26 @@ namespace FrontEnt_GestionPortatiles_Blazor.Servicios
             }
         }
 
-        public async Task<List<EquipoReadDto>> ObtenerEquiposPorEstudianteAsync(int idEstudiante)
+        public async Task<bool> CambiarEstadoEquipoAsync(int id, string nuevoEstado)
         {
             try
             {
-                var resultado = await _http.GetFromJsonAsync<List<EquipoReadDto>>($"api/Equipos/estudiante/{idEstudiante}");
-                return resultado ?? new List<EquipoReadDto>();
+                var response = await _http.PatchAsJsonAsync($"api/Equipos/{id}/estado", nuevoEstado);
+                return response.IsSuccessStatusCode;
             }
             catch
             {
-                return new List<EquipoReadDto>();
+                return false;
             }
         }
 
         // =========================================================================
-        // 5. ADMINISTRACIÓN DE CUENTAS DE USUARIO (RF-10, RNF-08)
+        // 5. MÓDULO DE ADMINISTRACIÓN DE USUARIOS - RBAC (RF-10, RNF-08)
+        // Swagger: GET /api/Usuarios
+        // Swagger: POST /api/Usuarios
+        // Swagger: GET /api/Usuarios/{id}
+        // Swagger: PUT /api/Usuarios/{id}
+        // Swagger: PATCH /api/Usuarios/{id}/desactivar
         // =========================================================================
         public async Task<List<UsuarioReadDto>> ObtenerUsuariosAsync()
         {
@@ -188,6 +202,18 @@ namespace FrontEnt_GestionPortatiles_Blazor.Servicios
             catch
             {
                 return new List<UsuarioReadDto>();
+            }
+        }
+
+        public async Task<UsuarioReadDto?> ObtenerUsuarioPorIdAsync(int id)
+        {
+            try
+            {
+                return await _http.GetFromJsonAsync<UsuarioReadDto>($"api/Usuarios/{id}");
+            }
+            catch
+            {
+                return null;
             }
         }
 
@@ -209,6 +235,19 @@ namespace FrontEnt_GestionPortatiles_Blazor.Servicios
             try
             {
                 var response = await _http.PutAsJsonAsync($"api/Usuarios/{id}", usuarioDto);
+                return response.IsSuccessStatusCode;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> DesactivarUsuarioAsync(int id)
+        {
+            try
+            {
+                var response = await _http.PatchAsync($"api/Usuarios/{id}/desactivar", null);
                 return response.IsSuccessStatusCode;
             }
             catch

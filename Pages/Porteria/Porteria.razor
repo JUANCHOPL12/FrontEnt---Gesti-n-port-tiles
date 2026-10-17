@@ -1,7 +1,9 @@
 @page "/porteria"
 @using FrontEnt_GestionPortatiles_Blazor.DTOs.Accesos
+@using FrontEnt_GestionPortatiles_Blazor.DTOs.Estudiantes
 @using FrontEnt_GestionPortatiles_Blazor.DTOs.Equipos
-@inject HttpClient Http
+@using FrontEnt_GestionPortatiles_Blazor.Servicios
+@inject IApiService ApiService
 @inject IJSRuntime JS
 
 <PageTitle>SGE - Control de Portería</PageTitle>
@@ -10,10 +12,10 @@
     <!-- Encabezado del Módulo -->
     <header class="porteria-header">
         <h1>Control de Portería</h1>
-        <p class="subtitle">Búsqueda rápida y registro de entrada/salida de estudiantes y portátiles</p>
+        <p class="subtitle">Búsqueda rápida y registro de entrada/salida de estudiantes y portátiles (RF-07, RF-08)</p>
     </header>
 
-    <!-- Barra de Búsqueda Rápida (RF-07, RNF-01) -->
+    <!-- Barra de Búsqueda Acelerada (< 2.0s - RNF-01) -->
     <section class="search-card">
         <form @onsubmit="BuscarEstudiante" class="search-form">
             <div class="search-input-group">
@@ -21,8 +23,8 @@
                 <input type="text" 
                        class="search-input" 
                        placeholder="Ingrese el número de documento del estudiante..." 
-                       @bind="numeroDocumento" 
-                       @bind:event="oninput" 
+                       value="@numeroDocumento" 
+                       @oninput="OnInputDocumento" 
                        autofocus />
                 <button type="submit" class="btn-search" disabled="@isSearching">
                     @(isSearching ? "Verificando..." : "Buscar")
@@ -59,19 +61,15 @@
                     <div class="info-list">
                         <div class="info-item">
                             <span class="label">Documento:</span>
-                            <span class="value">@estudianteEncontrado.NumeroDocumento</span>
+                            <span class="value">@estudianteEncontrado.Documento</span>
                         </div>
                         <div class="info-item">
                             <span class="label">Nombre:</span>
                             <span class="value highlight">@estudianteEncontrado.NombreCompleto</span>
                         </div>
                         <div class="info-item">
-                            <span class="label">Carrera:</span>
-                            <span class="value">@estudianteEncontrado.Carrera</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="label">Facultad:</span>
-                            <span class="value">@estudianteEncontrado.Facultad</span>
+                            <span class="label">Carrera ID:</span>
+                            <span class="value">@estudianteEncontrado.IdCarrera</span>
                         </div>
                     </div>
                 </div>
@@ -81,46 +79,30 @@
             <div class="card card-equipment">
                 <div class="card-header">
                     <h3>Equipo Registrado</h3>
-                    <span class="badge @(estudianteEncontrado.Equipo != null ? "badge-info" : "badge-secondary")">
-                        @(estudianteEncontrado.Equipo != null ? "Vinculado" : "Sin Equipo")
+                    <span class="badge @(estudianteEncontrado.TieneEquipoRegistrado ? "badge-info" : "badge-secondary")">
+                        @(estudianteEncontrado.TieneEquipoRegistrado ? "Vinculado" : "Sin Equipo")
                     </span>
                 </div>
                 <div class="card-body">
-                    @if (estudianteEncontrado.Equipo != null)
+                    @if (estudianteEncontrado.TieneEquipoRegistrado)
                     {
                         <div class="equipment-preview">
-                            <img src="@(string.IsNullOrEmpty(estudianteEncontrado.Equipo.FotoEquipoUrl) ? "images/default-laptop.png" : estudianteEncontrado.Equipo.FotoEquipoUrl)" 
+                            <img src="@(string.IsNullOrEmpty(estudianteEncontrado.FotoEquipoUrl) ? "images/default-laptop.png" : estudianteEncontrado.FotoEquipoUrl)" 
                                  alt="Foto del Portátil" 
                                  class="laptop-img" />
                         </div>
                         <div class="info-list">
                             <div class="info-item">
-                                <span class="label">Tipo / Marca:</span>
-                                <span class="value">@estudianteEncontrado.Equipo.Tipo - @estudianteEncontrado.Equipo.Marca</span>
-                            </div>
-                            <div class="info-item">
                                 <span class="label">Serial:</span>
-                                <span class="value serial-code">@estudianteEncontrado.Equipo.Serial</span>
+                                <span class="value serial-code">@estudianteEncontrado.SerialEquipo</span>
                             </div>
                         </div>
 
-                        <!-- Detalle de Accesorios -->
-                        @if (estudianteEncontrado.Equipo.Accesorios != null && estudianteEncontrado.Equipo.Accesorios.Any())
+                        @if (!string.IsNullOrEmpty(estudianteEncontrado.FotoAccesoriosUrl))
                         {
                             <div class="accesorios-section mt-3">
                                 <span class="label-section">Accesorios:</span>
-                                <ul class="accesorios-list">
-                                    @foreach (var acc in estudianteEncontrado.Equipo.Accesorios)
-                                    {
-                                        <li>
-                                            <span>🔹 @acc.DescripcionAccesorio</span>
-                                            @if (!string.IsNullOrEmpty(acc.FotoAccesoriosUrl))
-                                            {
-                                                <a href="@acc.FotoAccesoriosUrl" target="_blank" class="link-foto">📷 Foto</a>
-                                            }
-                                        </li>
-                                    }
-                                </ul>
+                                <a href="@estudianteEncontrado.FotoAccesoriosUrl" target="_blank" class="link-foto">📷 Foto Accesorios</a>
                             </div>
                         }
                     }
@@ -173,7 +155,20 @@
     private bool isSearching = false;
     private bool isProcessing = false;
 
-    private EstudianteVerificacionReadDto? estudianteEncontrado;
+    private EstudianteDetalleDto? estudianteEncontrado;
+
+    // Reactividad en tiempo real: Si el usuario borra o modifica el documento, se ocultan las tarjetas
+    private void OnInputDocumento(ChangeEventArgs e)
+    {
+        numeroDocumento = e.Value?.ToString() ?? string.Empty;
+
+        if (estudianteEncontrado != null && estudianteEncontrado.Documento != numeroDocumento)
+        {
+            estudianteEncontrado = null;
+            mensajeError = string.Empty;
+            mensajeExito = string.Empty;
+        }
+    }
 
     private async Task BuscarEstudiante()
     {
@@ -183,32 +178,24 @@
         if (string.IsNullOrWhiteSpace(numeroDocumento))
         {
             mensajeError = "Por favor ingrese un número de documento válido.";
+            estudianteEncontrado = null;
             return;
         }
 
         isSearching = true;
         try
         {
-            // GET /api/RegistroAccesos/verificar/{numeroDocumento} (RF-07)
-            var response = await Http.GetAsync($"api/RegistroAccesos/verificar/{numeroDocumento}");
+            // Apunta al endpoint directo habilitado para portería: GET /api/Estudiantes/buscar/{documento}
+            estudianteEncontrado = await ApiService.ConsultarEstudiantePorDocumentoAsync(numeroDocumento.Trim());
 
-            if (response.IsSuccessStatusCode)
+            if (estudianteEncontrado == null)
             {
-                estudianteEncontrado = await response.Content.ReadFromJsonAsync<EstudianteVerificacionReadDto>();
-            }
-            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                estudianteEncontrado = null;
                 mensajeError = "No se encontró ningún estudiante con el documento ingresado.";
-            }
-            else
-            {
-                mensajeError = "Ocurrió un error al consultar los datos. Intente nuevamente.";
             }
         }
         catch (Exception ex)
         {
-            mensajeError = $"Error de comunicación con el backend: {ex.Message}";
+            mensajeError = $"Error al consultar los datos: {ex.Message}";
         }
         finally
         {
@@ -227,17 +214,16 @@
         var dto = new RegistroAccesoCreateDto
         {
             IdEstudiante = estudianteEncontrado.IdEstudiante,
-            IdEquipo = estudianteEncontrado.Equipo?.IdEquipo,
-            IdPorteria = 1, // ID por defecto de la portería activa
+            IdEquipo = null,
+            IdPorteria = 1,
             TipoMovimiento = tipoMovimiento
         };
 
         try
         {
-            // POST /api/RegistroAccesos (RF-08)
-            var response = await Http.PostAsJsonAsync("api/RegistroAccesos", dto);
+            bool exito = await ApiService.RegistrarAccesoAsync(dto);
 
-            if (response.IsSuccessStatusCode)
+            if (exito)
             {
                 mensajeExito = $"¡Movimiento de {tipoMovimiento.ToUpper()} registrado con éxito!";
             }
@@ -254,18 +240,5 @@
         {
             isProcessing = false;
         }
-    }
-
-    // DTO de respuesta estructurado para la verificación en portería
-    public class EstudianteVerificacionReadDto
-    {
-        public int IdEstudiante { get; set; }
-        public string NumeroDocumento { get; set; } = string.Empty;
-        public string NombreCompleto { get; set; } = string.Empty;
-        public string Carrera { get; set; } = string.Empty;
-        public string Facultad { get; set; } = string.Empty;
-        public string Estado { get; set; } = string.Empty;
-        public string? FotoPerfilUrl { get; set; }
-        public EquipoReadDto? Equipo { get; set; }
     }
 }
