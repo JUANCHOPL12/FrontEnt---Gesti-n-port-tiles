@@ -1,4 +1,5 @@
 @page "/estudiantes"
+@using FrontEnt_GestionPortatiles_Blazor.DTOs.Catalogos
 @using FrontEnt_GestionPortatiles_Blazor.DTOs.Estudiantes
 @using FrontEnt_GestionPortatiles_Blazor.Servicios
 @inject IApiService ApiService
@@ -16,7 +17,7 @@
         </button>
     </div>
 
-    <!-- MENSAGES DE ALERTA -->
+    <!-- MENSAJES DE ALERTA -->
     @if (!string.IsNullOrEmpty(mensajeExito))
     {
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -91,277 +92,312 @@
                                 <td><strong>@item.Documento</strong></td>
                                 <td>@item.Nombres @item.Apellidos</td>
                                 <td>
-                                    <small class="d-block text-muted"><i class="bi bi-telephone"></i> @(item.Telefono ??
-                                                  "N/A")</small>
-                                        <small class="d-block text-muted"><i class="bi bi-envelope"></i> @(item.Correo ?? "N/A")</small>
-                                    </td>
-                                    <td>
-                                        @if (!string.IsNullOrEmpty(item.SerialEquipo))
+                                    <small class="d-block text-muted"><i class="bi bi-telephone"></i> @(item.Telefono ?? "N/A")</small>
+                                    <small class="d-block text-muted"><i class="bi bi-envelope"></i> @(item.Correo ?? "N/A")</small>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(item.SerialEquipo))
+                                    {
+                                        <span class="badge bg-info text-dark"><i class="bi bi-laptop"></i> @item.SerialEquipo</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-muted">Sin Equipo</span>
+                                    }
+                                </td>
+                                <td>
+                                    <button class="badge-btn @(item.Estado == "Activo" ? "bg-success" : "bg-secondary")"
+                                            @onclick="() => CambiarEstado(item)">
+                                        @item.Estado
+                                    </button>
+                                </td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-primary me-1" title="Editar"
+                                            @onclick="() => AbrirModalEditar(item)">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- MODAL FORMULARIO EDICIÓN / REGISTRO -->
+@if (mostrarModal)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi @(esEdicion ? "bi-pencil-square" : "bi-person-plus-fill")"></i>
+                        @(esEdicion ? "Editar Estudiante" : "Nuevo Registro de Estudiante")
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CerrarModal"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="formulario" OnValidSubmit="GuardarEstudiante">
+                        <DataAnnotationsValidator />
+
+                        <!-- SECCIÓN A: DATOS PERSONALES -->
+                        <div class="form-section">
+                            <h6 class="section-title"><i class="bi bi-card-heading"></i> A. Datos Personales</h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Número Documento *</label>
+                                    <InputText class="form-control" @bind-Value="formulario.Documento" disabled="@esEdicion" />
+                                    <ValidationMessage For="@(() => formulario.Documento)" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Nombres *</label>
+                                    <InputText class="form-control" @bind-Value="formulario.Nombres" />
+                                    <ValidationMessage For="@(() => formulario.Nombres)" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Apellidos *</label>
+                                    <InputText class="form-control" @bind-Value="formulario.Apellidos" />
+                                    <ValidationMessage For="@(() => formulario.Apellidos)" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Teléfono</label>
+                                    <InputText class="form-control" @bind-Value="formulario.Telefono" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Correo Electrónico</label>
+                                    <InputText class="form-control" @bind-Value="formulario.Correo" />
+                                </div>
+
+                                <!-- CASCADA 1: SELECCIÓN DE FACULTAD -->
+                                <div class="col-md-4">
+                                    <label class="form-label">Facultad *</label>
+                                    <select class="form-select" value="@idFacultadSeleccionada" @onchange="OnFacultadChanged">
+                                        <option value="0">-- Seleccione Facultad --</option>
+                                        @foreach (var f in facultades)
                                         {
-                                            <span class="badge bg-info text-dark"><i class="bi bi-laptop"></i> @item.SerialEquipo</span>
+                                            <option value="@f.IdFacultad">@f.NombreFacultad</option>
+                                        }
+                                    </select>
+                                </div>
+
+                                <!-- CASCADA 2: SELECCIÓN DE CARRERA (FILTRADA) -->
+                                <div class="col-md-4">
+                                    <label class="form-label">Carrera / Programa *</label>
+                                    <InputSelect class="form-select" @bind-Value="formulario.IdCarrera" disabled="@(idFacultadSeleccionada == 0)">
+                                        <option value="0">
+                                            @(idFacultadSeleccionada == 0 ? "-- Seleccione primero Facultad --" : "-- Seleccione Programa --")
+                                        </option>
+                                        @foreach (var c in carreras)
+                                        {
+                                            <option value="@c.IdCarrera">@c.NombreCarrera</option>
+                                        }
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => formulario.IdCarrera)" />
+                                </div>
+
+                                <!-- CÁMARA 1: FOTO PERFIL -->
+                                <div class="col-12 mt-3">
+                                    <label class="form-label d-block">Fotografía 1: Foto de Perfil en Vivo</label>
+                                    <div class="camera-card">
+                                        @if (camaraActivaIndex == 1)
+                                        {
+                                            <div class="video-container">
+                                                <video id="video1" autoplay playsinline class="camera-feed"></video>
+                                                <canvas id="canvas1" class="d-none"></canvas>
+                                                <div class="camera-actions">
+                                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => CapturarFoto(1)">
+                                                        <i class="bi bi-camera"></i> Capturar Foto
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-secondary" @onclick="DetenerCamara">Cancelar</button>
+                                                </div>
+                                            </div>
                                         }
                                         else
                                         {
-                                            <span class="badge bg-light text-muted">Sin Equipo</span>
+                                            <div class="preview-container">
+                                                @if (!string.IsNullOrEmpty(formulario.FotoPerfilUrl))
+                                                {
+                                                    <img src="@formulario.FotoPerfilUrl" class="photo-preview" />
+                                                    <button type="button" class="btn btn-sm btn-outline-warning mt-2" @onclick="() => AbrirCamara(1)">
+                                                        <i class="bi bi-arrow-repeat"></i> Repetir Foto
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <div class="camera-placeholder" @onclick="() => AbrirCamara(1)">
+                                                        <i class="bi bi-camera-fill"></i>
+                                                        <span>Abrir Cámara en Vivo</span>
+                                                    </div>
+                                                }
+                                            </div>
                                         }
-                                    </td>
-                                    <td>
-                                        <button class="badge-btn @(item.Estado == "Activo" ? "bg-success" : "bg-secondary")"
-                                                @onclick="() => CambiarEstado(item)">
-                                            @item.Estado
-                                        </button>
-                                    </td>
-                                    <td class="text-end">
-                                        <button class="btn btn-sm btn-outline-primary me-1" title="Editar"
-                                                @onclick="() => AbrirModalEditar(item)">
-                                            <i class="bi bi-pencil-square"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </div>
-    </div>
-
-    <!-- MODAL FORMULARIO EDICIÓN / REGISTRO -->
-    @if (mostrarModal)
-    {
-        <div class="modal-backdrop fade show"></div>
-        <div class="modal fade show d-block" tabindex="-1" role="dialog">
-            <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">
-                            <i class="bi @(esEdicion ? "bi-pencil-square" : "bi-person-plus-fill")"></i>
-                            @(esEdicion ? "Editar Estudiante" : "Nuevo Registro de Estudiante")
-                        </h5>
-                        <button type="button" class="btn-close" @onclick="CerrarModal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <EditForm Model="formulario" OnValidSubmit="GuardarEstudiante">
-                            <DataAnnotationsValidator />
-
-                            <!-- SECCIÓN A: DATOS PERSONALES -->
-                            <div class="form-section">
-                                <h6 class="section-title"><i class="bi bi-card-heading"></i> A. Datos Personales</h6>
-                                <div class="row g-3">
-                                    <div class="col-md-4">
-                                        <label class="form-label">Número Documento *</label>
-                                        <InputText class="form-control" @bind-Value="formulario.Documento"
-                                                   disabled="@esEdicion" />
-                                        <ValidationMessage For="@(() => formulario.Documento)" />
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Nombres *</label>
-                                        <InputText class="form-control" @bind-Value="formulario.Nombres" />
-                                        <ValidationMessage For="@(() => formulario.Nombres)" />
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Apellidos *</label>
-                                        <InputText class="form-control" @bind-Value="formulario.Apellidos" />
-                                        <ValidationMessage For="@(() => formulario.Apellidos)" />
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Teléfono</label>
-                                        <InputText class="form-control" @bind-Value="formulario.Telefono" />
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Correo Electrónico</label>
-                                        <InputText class="form-control" @bind-Value="formulario.Correo" />
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">ID Carrera / Programa *</label>
-                                        <InputNumber class="form-control" @bind-Value="formulario.IdCarrera" />
-                                        <ValidationMessage For="@(() => formulario.IdCarrera)" />
-                                    </div>
-
-                                    <!-- CÁMARA 1: FOTO PERFIL -->
-                                    <div class="col-12 mt-3">
-                                        <label class="form-label d-block">Fotografía 1: Foto de Perfil en Vivo</label>
-                                        <div class="camera-card">
-                                            @if (camaraActivaIndex == 1)
-                                            {
-                                                <div class="video-container">
-                                                    <video id="video1" autoplay playsinline class="camera-feed"></video>
-                                                    <canvas id="canvas1" class="d-none"></canvas>
-                                                    <div class="camera-actions">
-                                                        <button type="button" class="btn btn-sm btn-success"
-                                                                @onclick="() => CapturarFoto(1)">
-                                                            <i class="bi bi-camera"></i> Capturar Foto
-                                                        </button>
-                                                        <button type="button" class="btn btn-sm btn-secondary"
-                                                                @onclick="DetenerCamara">Cancelar</button>
-                                                    </div>
-                                                </div>
-                                            }
-                                            else
-                                            {
-                                                <div class="preview-container">
-                                                    @if (!string.IsNullOrEmpty(formulario.FotoPerfilUrl))
-                                                    {
-                                                        <img src="@formulario.FotoPerfilUrl" class="photo-preview" />
-                                                        <button type="button" class="btn btn-sm btn-outline-warning mt-2"
-                                                                @onclick="() => AbrirCamara(1)">
-                                                            <i class="bi bi-arrow-repeat"></i> Repetir Foto
-                                                        </button>
-                                                    }
-                                                    else
-                                                    {
-                                                        <div class="camera-placeholder" @onclick="() => AbrirCamara(1)">
-                                                            <i class="bi bi-camera-fill"></i>
-                                                            <span>Abrir Cámara en Vivo</span>
-                                                        </div>
-                                                    }
-                                                </div>
-                                            }
-                                        </div>
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <!-- SECCIÓN B: EQUIPO PORTÁTIL -->
-                            <div class="form-section mt-4">
-                                <h6 class="section-title"><i class="bi bi-laptop"></i> B. Equipo Portátil (Opcional)</h6>
-                                <div class="row g-3">
-                                    <div class="col-md-4">
-                                        <label class="form-label">Número de Serial</label>
-                                        <InputText class="form-control" @bind-Value="formulario.SerialEquipo" />
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">ID Marca Equipo</label>
-                                        <InputNumber class="form-control" @bind-Value="formulario.IdMarca" />
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">ID Tipo Equipo</label>
-                                        <InputNumber class="form-control" @bind-Value="formulario.IdTipo" />
-                                    </div>
+                        <!-- SECCIÓN B: EQUIPO PORTÁTIL -->
+                        <div class="form-section mt-4">
+                            <h6 class="section-title"><i class="bi bi-laptop"></i> B. Equipo Portátil (Opcional)</h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Número de Serial</label>
+                                    <InputText class="form-control" @bind-Value="formulario.SerialEquipo" />
+                                </div>
 
-                                    <!-- CÁMARA 2: FOTO EQUIPO -->
-                                    <div class="col-12 mt-3">
-                                        <label class="form-label d-block">Fotografía 2: Foto del Equipo Portátil</label>
-                                        <div class="camera-card">
-                                            @if (camaraActivaIndex == 2)
-                                            {
-                                                <div class="video-container">
-                                                    <video id="video2" autoplay playsinline class="camera-feed"></video>
-                                                    <canvas id="canvas2" class="d-none"></canvas>
-                                                    <div class="camera-actions">
-                                                        <button type="button" class="btn btn-sm btn-success"
-                                                                @onclick="() => CapturarFoto(2)">
-                                                            <i class="bi bi-camera"></i> Capturar Foto
-                                                        </button>
-                                                        <button type="button" class="btn btn-sm btn-secondary"
-                                                                @onclick="DetenerCamara">Cancelar</button>
+                                <!-- DESPLEGABLE: MARCA -->
+                                <div class="col-md-4">
+                                    <label class="form-label">Marca Equipo</label>
+                                    <InputSelect class="form-select" @bind-Value="formulario.IdMarca">
+                                        <option value="">-- Seleccione Marca --</option>
+                                        @foreach (var m in marcas)
+                                        {
+                                            <option value="@m.IdMarca">@m.NombreMarca</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+
+                                <!-- DESPLEGABLE: TIPO DE EQUIPO -->
+                                <div class="col-md-4">
+                                    <label class="form-label">Tipo Equipo</label>
+                                    <InputSelect class="form-select" @bind-Value="formulario.IdTipo">
+                                        <option value="">-- Seleccione Tipo --</option>
+                                        @foreach (var t in tiposEquipo)
+                                        {
+                                            <option value="@t.IdTipo">@t.NombreTipo</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+
+                                <!-- CÁMARA 2: FOTO EQUIPO -->
+                                <div class="col-12 mt-3">
+                                    <label class="form-label d-block">Fotografía 2: Foto del Equipo Portátil</label>
+                                    <div class="camera-card">
+                                        @if (camaraActivaIndex == 2)
+                                        {
+                                            <div class="video-container">
+                                                <video id="video2" autoplay playsinline class="camera-feed"></video>
+                                                <canvas id="canvas2" class="d-none"></canvas>
+                                                <div class="camera-actions">
+                                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => CapturarFoto(2)">
+                                                        <i class="bi bi-camera"></i> Capturar Foto
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-secondary" @onclick="DetenerCamara">Cancelar</button>
+                                                </div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="preview-container">
+                                                @if (!string.IsNullOrEmpty(formulario.FotoEquipoUrl))
+                                                {
+                                                    <img src="@formulario.FotoEquipoUrl" class="photo-preview" />
+                                                    <button type="button" class="btn btn-sm btn-outline-warning mt-2" @onclick="() => AbrirCamara(2)">
+                                                        <i class="bi bi-arrow-repeat"></i> Repetir Foto
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <div class="camera-placeholder" @onclick="() => AbrirCamara(2)">
+                                                        <i class="bi bi-camera-fill"></i>
+                                                        <span>Abrir Cámara en Vivo</span>
                                                     </div>
-                                                </div>
-                                            }
-                                            else
-                                            {
-                                                <div class="preview-container">
-                                                    @if (!string.IsNullOrEmpty(formulario.FotoEquipoUrl))
-                                                    {
-                                                        <img src="@formulario.FotoEquipoUrl" class="photo-preview" />
-                                                        <button type="button" class="btn btn-sm btn-outline-warning mt-2"
-                                                                @onclick="() => AbrirCamara(2)">
-                                                            <i class="bi bi-arrow-repeat"></i> Repetir Foto
-                                                        </button>
-                                                    }
-                                                    else
-                                                    {
-                                                        <div class="camera-placeholder" @onclick="() => AbrirCamara(2)">
-                                                            <i class="bi bi-camera-fill"></i>
-                                                            <span>Abrir Cámara en Vivo</span>
-                                                        </div>
-                                                    }
-                                                </div>
-                                            }
-                                        </div>
+                                                }
+                                            </div>
+                                        }
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <!-- SECCIÓN C: ACCESORIOS -->
-                            <div class="form-section mt-4">
-                                <h6 class="section-title"><i class="bi bi-plug"></i> C. Accesorios Asociados</h6>
-                                <div class="row g-3">
-                                    <!-- CÁMARA 3: FOTO ACCESORIOS -->
-                                    <div class="col-12">
-                                        <label class="form-label d-block">Fotografía 3: Foto de Accesorios</label>
-                                        <div class="camera-card">
-                                            @if (camaraActivaIndex == 3)
-                                            {
-                                                <div class="video-container">
-                                                    <video id="video3" autoplay playsinline class="camera-feed"></video>
-                                                    <canvas id="canvas3" class="d-none"></canvas>
-                                                    <div class="camera-actions">
-                                                        <button type="button" class="btn btn-sm btn-success"
-                                                                @onclick="() => CapturarFoto(3)">
-                                                            <i class="bi bi-camera"></i> Capturar Foto
-                                                        </button>
-                                                        <button type="button" class="btn btn-sm btn-secondary"
-                                                                @onclick="DetenerCamara">Cancelar</button>
+                        <!-- SECCIÓN C: ACCESORIOS -->
+                        <div class="form-section mt-4">
+                            <h6 class="section-title"><i class="bi bi-plug"></i> C. Accesorios Asociados</h6>
+                            <div class="row g-3">
+                                <!-- CÁMARA 3: FOTO ACCESORIOS -->
+                                <div class="col-12">
+                                    <label class="form-label d-block">Fotografía 3: Foto de Accesorios</label>
+                                    <div class="camera-card">
+                                        @if (camaraActivaIndex == 3)
+                                        {
+                                            <div class="video-container">
+                                                <video id="video3" autoplay playsinline class="camera-feed"></video>
+                                                <canvas id="canvas3" class="d-none"></canvas>
+                                                <div class="camera-actions">
+                                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => CapturarFoto(3)">
+                                                        <i class="bi bi-camera"></i> Capturar Foto
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-secondary" @onclick="DetenerCamara">Cancelar</button>
+                                                </div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="preview-container">
+                                                @if (!string.IsNullOrEmpty(formulario.FotoAccesoriosUrl))
+                                                {
+                                                    <img src="@formulario.FotoAccesoriosUrl" class="photo-preview" />
+                                                    <button type="button" class="btn btn-sm btn-outline-warning mt-2" @onclick="() => AbrirCamara(3)">
+                                                        <i class="bi bi-arrow-repeat"></i> Repetir Foto
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <div class="camera-placeholder" @onclick="() => AbrirCamara(3)">
+                                                        <i class="bi bi-camera-fill"></i>
+                                                        <span>Abrir Cámara en Vivo</span>
                                                     </div>
-                                                </div>
-                                            }
-                                            else
-                                            {
-                                                <div class="preview-container">
-                                                    @if (!string.IsNullOrEmpty(formulario.FotoAccesoriosUrl))
-                                                    {
-                                                        <img src="@formulario.FotoAccesoriosUrl" class="photo-preview" />
-                                                        <button type="button" class="btn btn-sm btn-outline-warning mt-2"
-                                                                @onclick="() => AbrirCamara(3)">
-                                                            <i class="bi bi-arrow-repeat"></i> Repetir Foto
-                                                        </button>
-                                                    }
-                                                    else
-                                                    {
-                                                        <div class="camera-placeholder" @onclick="() => AbrirCamara(3)">
-                                                            <i class="bi bi-camera-fill"></i>
-                                                            <span>Abrir Cámara en Vivo</span>
-                                                        </div>
-                                                    }
-                                                </div>
-                                            }
-                                        </div>
+                                                }
+                                            </div>
+                                        }
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <div class="modal-footer mt-4 px-0 pb-0">
-                                <button type="button" class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
-                                <button type="submit" class="btn btn-primary" disabled="@guardando">
-                                    @if (guardando)
-                                    {
-                                        <span class="spinner-border spinner-border-sm me-1"></span>
-                                    }
-                                    Guardar Registro
-                                </button>
-                            </div>
-                        </EditForm>
-                    </div>
+                        <div class="modal-footer mt-4 px-0 pb-0">
+                            <button type="button" class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary" disabled="@guardando">
+                                @if (guardando)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                }
+                                Guardar Registro
+                            </button>
+                        </div>
+                    </EditForm>
                 </div>
             </div>
         </div>
-    }
+    </div>
+}
 
 @code {
     private List<EstudianteReadDto> estudiantes = new();
-    private EstudianteCreateUpdateDto formulario = new();
     
+    // LISTAS DE CATÁLOGOS DESDE LA BASE DE DATOS
+    private List<FacultadDto> facultades = new();
+    private List<CarreraDto> carreras = new();
+    private List<MarcaDto> marcas = new();
+    private List<TipoEquipoDto> tiposEquipo = new();
+
+    private int idFacultadSeleccionada = 0;
+    private EstudianteCreateUpdateDto formulario = new();
+
     private string criterioBusqueda = string.Empty;
     private string? mensajeExito;
     private string? mensajeError;
-    
+
     private bool cargando = true;
     private bool guardando = false;
     private bool mostrarModal = false;
     private bool esEdicion = false;
     private int idEstudianteEditar = 0;
-    
+
     private int camaraActivaIndex = 0;
     private IJSObjectReference? cameraModule;
 
@@ -375,7 +411,15 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await CargarCatalogosIniciales();
         await CargarEstudiantes();
+    }
+
+    private async Task CargarCatalogosIniciales()
+    {
+        facultades = await ApiService.ObtenerFacultadesAsync();
+        marcas = await ApiService.ObtenerMarcasAsync();
+        tiposEquipo = await ApiService.ObtenerTiposEquipoAsync();
     }
 
     private async Task CargarEstudiantes()
@@ -385,9 +429,30 @@
         cargando = false;
     }
 
+    // MANEJA EL FILTRADO EN CASCADA AL CAMBIAR DE FACULTAD
+    private async Task OnFacultadChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int idFacultad))
+        {
+            idFacultadSeleccionada = idFacultad;
+            formulario.IdCarrera = 0; // Reinicia el selector de carrera
+            
+            if (idFacultad > 0)
+            {
+                carreras = await ApiService.ObtenerCarrerasPorFacultadAsync(idFacultad);
+            }
+            else
+            {
+                carreras.Clear();
+            }
+        }
+    }
+
     private void AbrirModalCrear()
     {
-        formulario = new EstudianteCreateUpdateDto { IdCarrera = 1 };
+        formulario = new EstudianteCreateUpdateDto();
+        idFacultadSeleccionada = 0;
+        carreras.Clear();
         esEdicion = false;
         idEstudianteEditar = 0;
         mostrarModal = true;
@@ -425,15 +490,14 @@
     {
         await DetenerCamara();
         camaraActivaIndex = index;
-        StateHasChanged(); // Forzar renderizado para dibujar el elemento <video>
-        
-        await Task.Delay(200); // Esperar que el DOM termine de renderizar la etiqueta <video>
+        StateHasChanged();
+
+        await Task.Delay(200);
 
         try
         {
             if (cameraModule == null)
             {
-                // Importar el módulo JS dinámicamente
                 cameraModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/camera.js");
             }
             await cameraModule.InvokeVoidAsync("startCamera", $"video{index}");

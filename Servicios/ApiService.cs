@@ -4,6 +4,7 @@ using FrontEnt_GestionPortatiles_Blazor.DTOs.Autenticacion;
 using FrontEnt_GestionPortatiles_Blazor.DTOs.Equipos;
 using FrontEnt_GestionPortatiles_Blazor.DTOs.Estudiantes;
 using FrontEnt_GestionPortatiles_Blazor.DTOs.Usuarios;
+using FrontEnt_GestionPortatiles_Blazor.DTOs.Catalogos;
 
 namespace FrontEnt_GestionPortatiles_Blazor.Servicios
 {
@@ -111,6 +112,11 @@ namespace FrontEnt_GestionPortatiles_Blazor.Servicios
             {
                 return false;
             }
+        }
+
+        public async Task<bool> CrearEstudianteAsync(EstudianteCreateUpdateDto estudianteDto)
+        {
+            return await RegistrarEstudianteAsync(estudianteDto);
         }
 
         public async Task<bool> ActualizarEstudianteAsync(int id, EstudianteCreateUpdateDto estudianteDto)
@@ -253,6 +259,68 @@ namespace FrontEnt_GestionPortatiles_Blazor.Servicios
             catch
             {
                 return false;
+            }
+        }
+// =========================================================================
+        // 6. MÓDULO DE CATÁLOGOS (Facultades, Carreras por Facultad, Marcas, Tipos)
+        // Swagger: GET /api/Catalogos/facultades
+        // Swagger: GET /api/Catalogos/carreras/facultad/{idFacultad}
+        // Swagger: GET /api/Catalogos/marcas
+        // Swagger: GET /api/Catalogos/tipos-equipo
+        // =========================================================================
+        public async Task<List<FacultadDto>> ObtenerFacultadesAsync()
+        {
+            try
+            {
+                var resultado = await _http.GetFromJsonAsync<List<FacultadDto>>("api/Catalogos/facultades");
+                return resultado ?? new List<FacultadDto>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al obtener facultades: {ex.Message}");
+                return new List<FacultadDto>();
+            }
+        }
+
+        public async Task<List<CarreraDto>> ObtenerCarrerasPorFacultadAsync(int idFacultad)
+        {
+            try
+            {
+                var resultado = await _http.GetFromJsonAsync<List<CarreraDto>>($"api/Catalogos/carreras/facultad/{idFacultad}");
+                return resultado ?? new List<CarreraDto>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al obtener carreras para la facultad {idFacultad}: {ex.Message}");
+                return new List<CarreraDto>();
+            }
+        }
+
+        public async Task<List<MarcaDto>> ObtenerMarcasAsync()
+        {
+            try
+            {
+                var resultado = await _http.GetFromJsonAsync<List<MarcaDto>>("api/Catalogos/marcas");
+                return resultado ?? new List<MarcaDto>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al obtener marcas: {ex.Message}");
+                return new List<MarcaDto>();
+            }
+        }
+
+        public async Task<List<TipoEquipoDto>> ObtenerTiposEquipoAsync()
+        {
+            try
+            {
+                var resultado = await _http.GetFromJsonAsync<List<TipoEquipoDto>>("api/Catalogos/tipos-equipo");
+                return resultado ?? new List<TipoEquipoDto>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al obtener tipos de equipo: {ex.Message}");
+                return new List<TipoEquipoDto>();
             }
         }
     }
