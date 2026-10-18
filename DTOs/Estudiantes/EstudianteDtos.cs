@@ -38,19 +38,38 @@ namespace FrontEnt_GestionPortatiles_Blazor.DTOs.Estudiantes
     public class EstudianteDetalleDto
     {
         public int IdEstudiante { get; set; }
-        public string Documento { get; set; } = string.Empty;
+
+        // Mapea directamente con numeroDocumento enviado por el Backend
+        public string NumeroDocumento { get; set; } = string.Empty;
+        public string Documento => NumeroDocumento; // Propiedad de compatibilidad
+
         public string NombreCompleto { get; set; } = string.Empty;
-        public int IdCarrera { get; set; }
+        public string Carrera { get; set; } = string.Empty;
+        public string Facultad { get; set; } = string.Empty;
+        public string Correo { get; set; } = string.Empty;
+        public string Telefono { get; set; } = string.Empty;
         public string Estado { get; set; } = string.Empty;
 
         // Registro fotográfico para control de portería (RF-07, RNF-04)
         public string? FotoPerfilUrl { get; set; }
-        public string? FotoEquipoUrl { get; set; }
-        public string? FotoAccesoriosUrl { get; set; }
 
         // Dispositivo asociado
-        public string? SerialEquipo { get; set; }
-        public bool TieneEquipoRegistrado { get; set; }
+        public bool TieneEquipo { get; set; }
+        public EquipoDetallePorteriaDto? Equipo { get; set; }
+
+        // Estado de Control de Acceso (Para bloqueo de botones y temporizador en vivo)
+        public bool EstaDentro { get; set; }
+        public DateTime? UltimoIngreso { get; set; }
+    }
+
+    public class EquipoDetallePorteriaDto
+    {
+        public int IdEquipo { get; set; }
+        public string Serial { get; set; } = string.Empty;
+        public string Marca { get; set; } = string.Empty;
+        public string Tipo { get; set; } = string.Empty;
+        public string? FotoEquipoUrl { get; set; }
+        public string? FotoAccesoriosUrl { get; set; }
     }
 
     /// <summary>

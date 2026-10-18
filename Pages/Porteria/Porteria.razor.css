@@ -1,411 +1,123 @@
-/* Paleta Institucional: Verde (#0b4f3f), Dorado (#ffd700) */
+/* ==========================================
+   ESTILOS GENERALES Y CONTENEDOR
+   ========================================== */
 .porteria-container {
+    padding: 1.5rem;
     max-width: 1400px;
     margin: 0 auto;
-    padding: 1.5rem;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.porteria-header {
-    margin-bottom: 1.5rem;
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e9ecef;
 }
 
-.porteria-header h1 {
-    color: #0b4f3f;
+.page-header .title {
+    font-size: 1.75rem;
     font-weight: 700;
+    color: #2c3e50;
     margin-bottom: 0.25rem;
 }
 
-.porteria-header .subtitle {
+.page-header .subtitle {
     color: #6c757d;
+    margin-bottom: 0;
     font-size: 0.95rem;
 }
 
-/* Tarjeta de Búsqueda Rápida */
-.search-card {
-    background-color: #ffffff;
-    border-radius: 18px;
-    padding: 1.5rem;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-    margin-bottom: 2rem;
+.porteria-selector {
+    background-color: #f8f9fa;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
 }
 
-.search-input-group {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+/* ==========================================
+   BARRA DE BÚSQUEDA Y LECTOR DE CÓDIGO
+   ========================================== */
+.input-group-lg .form-control {
+    font-size: 1.15rem;
+    border-left: none;
 }
 
-.search-icon {
-    font-size: 1.2rem;
+.input-group-lg .input-group-text {
+    border-right: none;
+    color: #0d6efd;
+    font-size: 1.25rem;
 }
 
-.search-input {
-    flex: 1;
-    padding: 0.8rem 1.2rem;
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    font-size: 1rem;
-    outline: none;
-    transition: border-color 0.3s ease;
+.input-group-lg .form-control:focus {
+    box-shadow: none;
+    border-color: #dee2e6;
 }
 
-.search-input:focus {
-    border-color: #0b4f3f;
-}
-
-.btn-search {
-    background-color: #0b4f3f;
-    color: #ffffff;
-    border: none;
-    padding: 0.8rem 1.8rem;
-    border-radius: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
-.btn-search:hover {
-    background-color: #083c30;
-}
-
-/* Layout Responsivo para Tarjetas de Perfil */
-.profile-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 1.5rem;
-}
-
+/* ==========================================
+   TARJETAS Y BORDES ELEVADOS
+   ========================================== */
 .card {
-    background-color: #ffffff;
-    border-radius: 18px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.25s ease-in-out;
 }
 
 .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #f0f0f0;
-    padding-bottom: 0.75rem;
-    margin-bottom: 1rem;
-}
-
-.card-header h3 {
-    color: #0b4f3f;
-    font-size: 1.15rem;
-    margin: 0;
-}
-
-/* Badges de Estado */
-.badge {
-    padding: 0.3rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
     font-weight: 600;
+    letter-spacing: 0.3px;
+    padding: 0.85rem 1.25rem;
 }
 
-.badge-success {
-    background-color: #e6f4ea;
-    color: #1e7e34;
+.list-group-item {
+    padding: 0.75rem 1.25rem;
+    border-color: #f1f3f5;
 }
 
-.badge-danger {
-    background-color: #fce8e6;
-    color: #d93025;
-}
-
-.badge-info {
-    background-color: #e8f0fe;
-    color: #1a73e8;
-}
-
-.badge-secondary {
-    background-color: #f1f3f4;
-    color: #5f6368;
-}
-
-/* Fotos e Imágenes */
-.avatar-wrapper,
-.equipment-preview {
-    text-align: center;
-    margin-bottom: 1rem;
-}
-
-.profile-avatar {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 3px solid #ffd700;
-}
-
-.laptop-img {
-    width: 100%;
-    max-height: 150px;
-    object-fit: contain;
-    border-radius: 8px;
-}
-
-/* Lista de Datos */
-.info-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-}
-
-.info-item {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.95rem;
-}
-
-.info-item .label {
-    color: #6c757d;
-}
-
-.info-item .value {
-    font-weight: 600;
-    color: #212529;
-}
-
-.info-item .highlight {
-    color: #0b4f3f;
-}
-
-.serial-code {
-    font-family: monospace;
-    background-color: #f8f9fa;
-    padding: 0.1rem 0.4rem;
-    border-radius: 4px;
-}
-
-/* Sección de Accesorios */
-.accesorios-section {
-    border-top: 1px dashed #e2e8f0;
-    padding-top: 0.8rem;
-}
-
-.label-section {
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: #0b4f3f;
-}
-
-.accesorios-list {
-    list-style: none;
-    padding-left: 0;
-    margin-top: 0.4rem;
-    font-size: 0.88rem;
-}
-
-.accesorios-list li {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.3rem;
-}
-
-.link-foto {
-    color: #0b4f3f;
-    text-decoration: none;
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-.link-foto:hover {
-    text-decoration: underline;
-}
-
-/* Botones de Acción Directa */
-.action-desc {
-    font-size: 0.9rem;
-    color: #6c757d;
-    margin-bottom: 1rem;
-}
-
-.action-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 0.8rem;
-}
-
-.btn-action {
-    width: 100%;
-    padding: 1rem;
-    border: none;
-    border-radius: 12px;
-    font-weight: 700;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: transform 0.1s ease, filter 0.2s ease;
-}
-
-.btn-action:active {
-    transform: scale(0.98);
-}
-
-.btn-entry {
-    background-color: #0b4f3f;
-    color: #ffffff;
-}
-
-.btn-entry:hover {
-    filter: brightness(1.1);
-}
-
-.btn-exit {
-    background-color: #d93025;
-    color: #ffffff;
-}
-
-.btn-exit:hover {
-    filter: brightness(1.1);
-}
-
-/* Mensajes y Alertas */
-.alert {
-    padding: 0.8rem 1rem;
-    border-radius: 10px;
-    font-size: 0.9rem;
-}
-
-.alert-danger {
-    background-color: #f8d7da;
-    color: #721c24;
-}
-
-.alert-success {
-    background-color: #d4edda;
-    color: #155724;
-}
-
-.empty-equipment {
-    text-align: center;
-    color: #6c757d;
-    padding: 1rem 0;
-}
-
-.animate-fade {
-    animation: fadeIn 0.3s ease-in-out;
-}
-
-.suggestions-container {
-    margin-top: 1rem;
-    background-color: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.suggestions-header {
+/* ==========================================
+   TEMPORIZADOR Y ESTADO DE PERMANENCIA
+   ========================================== */
+.display-6 {
+    font-family: 'Consolas', 'Courier New', Courier, monospace;
+    letter-spacing: 1.5px;
     background-color: #f8f9fa;
     padding: 0.5rem 1rem;
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: #0b4f3f;
-    border-bottom: 1px solid #e2e8f0;
-    text-transform: uppercase;
-}
-
-.suggestions-list {
-    display: flex;
-    flex-direction: column;
-}
-
-.suggestion-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid #f0f0f0;
-    transition: background 0.2s ease;
-}
-
-.suggestion-row:last-child {
-    border-bottom: none;
-}
-
-.suggestion-row:hover {
-    background-color: #f1f5f9;
-}
-
-.row-avatar {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid #ffd700;
-    margin-right: 0.8rem;
-}
-
-.row-info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-}
-
-.row-name {
-    font-weight: 700;
-    color: #212529;
-    font-size: 0.95rem;
-}
-
-.row-doc {
-    font-size: 0.82rem;
-    color: #6c757d;
-}
-
-.row-status {
-    margin-right: 1rem;
-}
-
-.btn-select-row {
-    background-color: #0b4f3f;
-    color: #ffffff;
-    border: none;
-    padding: 0.45rem 0.9rem;
     border-radius: 8px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s ease;
+    border: 1px dashed #ced4da;
+    display: inline-block;
 }
 
-.btn-select-row:hover {
-    background-color: #083c30;
+/* ==========================================
+   RECUADRO DE HISTORIAL CON SCROLL INTERNO
+   ========================================== */
+.historial-table-wrapper {
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    background-color: #ffffff;
 }
 
-.btn-clear {
-    background-color: #f1f5f9;
-    color: #475569;
-    border: 1px solid #cbd5e1;
-    padding: 0.8rem 1.2rem;
-    border-radius: 12px;
-    font-weight: 600;
-    cursor: pointer;
+.historial-table-wrapper table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background-color: #f8f9fa;
+    box-shadow: inset 0 -1px 0 #dee2e6;
 }
 
-.alert-warning {
-    background-color: #fff3cd;
-    color: #856404;
-    padding: 0.8rem 1rem;
-    border-radius: 10px;
-    font-size: 0.9rem;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(5px);
+/* ==========================================
+   RESPONSIVIDAD Y AJUSTES MÓVILES
+   ========================================== */
+@media (max-width: 768px) {
+    .porteria-container {
+        padding: 0.75rem;
     }
 
-    to {
-        opacity: 1;
-        transform: translateY(0);
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }

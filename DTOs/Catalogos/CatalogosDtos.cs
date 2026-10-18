@@ -37,4 +37,10 @@ namespace FrontEnt_GestionPortatiles_Blazor.DTOs.Catalogos
         [JsonPropertyName("nombreTipo")]
         public string NombreTipo { get; set; } = string.Empty;
     }
+
+    public class PorteriaDto
+    {
+        public int IdPorteria { get; set; }
+        public string NombrePorteria { get; set; } = string.Empty;
+    }
 }

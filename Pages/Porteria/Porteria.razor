@@ -1,244 +1,424 @@
 @page "/porteria"
 @using FrontEnt_GestionPortatiles_Blazor.DTOs.Accesos
 @using FrontEnt_GestionPortatiles_Blazor.DTOs.Estudiantes
-@using FrontEnt_GestionPortatiles_Blazor.DTOs.Equipos
+@using FrontEnt_GestionPortatiles_Blazor.DTOs.Catalogos
 @using FrontEnt_GestionPortatiles_Blazor.Servicios
+@using System.Timers
 @inject IApiService ApiService
-@inject IJSRuntime JS
-
-<PageTitle>SGE - Control de Portería</PageTitle>
+@implements IDisposable
 
 <div class="porteria-container">
-    <!-- Encabezado del Módulo -->
-    <header class="porteria-header">
-        <h1>Control de Portería</h1>
-        <p class="subtitle">Búsqueda rápida y registro de entrada/salida de estudiantes y portátiles (RF-07, RF-08)</p>
-    </header>
+    <!-- CABECERA DE SECCIÓN CON PORTERÍAS DINÁMICAS DESDE LA BD -->
+    <div class="page-header mb-4">
+        <div>
+            <h2 class="title"><i class="bi bi-shield-check"></i> Control de Portería</h2>
+            <p class="subtitle">Verificación de accesos, equipos asignados y registro de entradas/salidas en tiempo real
+            </p>
+        </div>
+        <div class="porteria-selector">
+            <label class="form-label me-2 mb-0 font-weight-bold">Sede / Portería:</label>
+            <select class="form-select form-select-sm d-inline-block w-auto" @bind="idPorteriaSeleccionada">
+                @if (listaPorterias != null && listaPorterias.Any())
+                {
+                    @foreach (var p in listaPorterias)
+                    {
+                        <option value="@p.IdPorteria">@p.NombrePorteria</option>
+                    }
+                }
+                else
+                {
+                    <option value="1">Cargando porterías...</option>
+                }
+            </select>
+        </div>
+    </div>
 
-    <!-- Barra de Búsqueda Acelerada (< 2.0s - RNF-01) -->
-    <section class="search-card">
-        <form @onsubmit="BuscarEstudiante" class="search-form">
-            <div class="search-input-group">
-                <span class="search-icon">🔍</span>
-                <input type="text" 
-                       class="search-input" 
-                       placeholder="Ingrese el número de documento del estudiante..." 
-                       value="@numeroDocumento" 
-                       @oninput="OnInputDocumento" 
-                       autofocus />
-                <button type="submit" class="btn-search" disabled="@isSearching">
-                    @(isSearching ? "Verificando..." : "Buscar")
-                </button>
-            </div>
-        </form>
-
-        @if (!string.IsNullOrEmpty(mensajeError))
-        {
-            <div class="alert alert-danger animate-fade mt-3">
-                ⚠️ @mensajeError
-            </div>
-        }
-    </section>
-
-    <!-- Perfil y Verificación Visual de Acceso (RF-07, RNF-05) -->
-    @if (estudianteEncontrado != null)
+    <!-- ALERTAS Y MENSAJES -->
+    @if (!string.IsNullOrEmpty(mensajeExito))
     {
-        <div class="profile-grid animate-fade">
-            <!-- Tarjeta 1: Información Académica y Personal -->
-            <div class="card card-student">
-                <div class="card-header">
-                    <h3>Perfil del Estudiante</h3>
-                    <span class="badge @(estudianteEncontrado.Estado == "Activo" ? "badge-success" : "badge-danger")">
-                        @estudianteEncontrado.Estado
-                    </span>
-                </div>
-                <div class="card-body">
-                    <div class="avatar-wrapper">
-                        <img src="@(string.IsNullOrEmpty(estudianteEncontrado.FotoPerfilUrl) ? "images/default-avatar.png" : estudianteEncontrado.FotoPerfilUrl)" 
-                             alt="Foto de Perfil" 
-                             class="profile-avatar" />
-                    </div>
-                    <div class="info-list">
-                        <div class="info-item">
-                            <span class="label">Documento:</span>
-                            <span class="value">@estudianteEncontrado.Documento</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="label">Nombre:</span>
-                            <span class="value highlight">@estudianteEncontrado.NombreCompleto</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="label">Carrera ID:</span>
-                            <span class="value">@estudianteEncontrado.IdCarrera</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tarjeta 2: Datos de Equipos y Accesorios (RF-07) -->
-            <div class="card card-equipment">
-                <div class="card-header">
-                    <h3>Equipo Registrado</h3>
-                    <span class="badge @(estudianteEncontrado.TieneEquipoRegistrado ? "badge-info" : "badge-secondary")">
-                        @(estudianteEncontrado.TieneEquipoRegistrado ? "Vinculado" : "Sin Equipo")
-                    </span>
-                </div>
-                <div class="card-body">
-                    @if (estudianteEncontrado.TieneEquipoRegistrado)
-                    {
-                        <div class="equipment-preview">
-                            <img src="@(string.IsNullOrEmpty(estudianteEncontrado.FotoEquipoUrl) ? "images/default-laptop.png" : estudianteEncontrado.FotoEquipoUrl)" 
-                                 alt="Foto del Portátil" 
-                                 class="laptop-img" />
-                        </div>
-                        <div class="info-list">
-                            <div class="info-item">
-                                <span class="label">Serial:</span>
-                                <span class="value serial-code">@estudianteEncontrado.SerialEquipo</span>
-                            </div>
-                        </div>
-
-                        @if (!string.IsNullOrEmpty(estudianteEncontrado.FotoAccesoriosUrl))
-                        {
-                            <div class="accesorios-section mt-3">
-                                <span class="label-section">Accesorios:</span>
-                                <a href="@estudianteEncontrado.FotoAccesoriosUrl" target="_blank" class="link-foto">📷 Foto Accesorios</a>
-                            </div>
-                        }
-                    }
-                    else
-                    {
-                        <div class="empty-equipment">
-                            <p>El estudiante no registra dispositivos portátiles vinculados en el sistema.</p>
-                        </div>
-                    }
-                </div>
-            </div>
-
-            <!-- Tarjeta 3: Botones para Marcación de Tiempos de Acceso (RF-08) -->
-            <div class="card card-actions">
-                <div class="card-header">
-                    <h3>Registro de Movimiento</h3>
-                </div>
-                <div class="card-body">
-                    <p class="action-desc">Presione el botón correspondiente para guardar la marca de tiempo (Timestamp) del estudiante.</p>
-
-                    <div class="action-buttons">
-                        <button class="btn-action btn-entry" 
-                                @onclick='() => RegistrarAcceso("Entrada")' 
-                                disabled="@isProcessing">
-                            🟢 Registrar ENTRADA
-                        </button>
-                        <button class="btn-action btn-exit" 
-                                @onclick='() => RegistrarAcceso("Salida")' 
-                                disabled="@isProcessing">
-                            🔴 Registrar SALIDA
-                        </button>
-                    </div>
-
-                    @if (!string.IsNullOrEmpty(mensajeExito))
-                    {
-                        <div class="alert alert-success animate-fade mt-3">
-                            ✅ @mensajeExito
-                        </div>
-                    }
-                </div>
-            </div>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @mensajeExito
+            <button type="button" class="btn-close" @onclick="() => mensajeExito = null"></button>
         </div>
     }
-</div>
+    @if (!string.IsNullOrEmpty(mensajeError))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @mensajeError
+            <button type="button" class="btn-close" @onclick="() => mensajeError = null"></button>
+        </div>
+    }
+
+    <!-- BARRA DE BÚSQUEDA RÁPIDA -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form @onsubmit="BuscarEstudiante" @onsubmit:preventDefault>
+                <div class="input-group input-group-lg">
+                    <span class="input-group-text bg-white"><i class="bi bi-barcode-scan"></i></span>
+                    <input type="text" class="form-control" placeholder="Escanee o ingrese el número de documento..."
+                           @bind="documentoBusqueda" @bind:event="oninput" autofocus />
+                    <button class="btn btn-primary px-4" type="submit" disabled="@buscando">
+                        @if (buscando)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            <span>Consultando...</span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-search me-1"></i>
+                            <span>Consultar</span>
+                        }
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (estudiante != null)
+    {
+        <div class="row g-4">
+            <!-- TARJETA INFORMACIÓN DEL ESTUDIANTE -->
+            <div class="col-lg-6">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-person-badge"></i> Datos del Estudiante</h5>
+                        <span class="badge @(estudiante.Estado == "Activo" ? "bg-success" : "bg-danger")">
+                            @estudiante.Estado
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-3">
+                            @if (!string.IsNullOrEmpty(estudiante.FotoPerfilUrl))
+                            {
+                                <img src="@estudiante.FotoPerfilUrl" class="img-thumbnail rounded-circle"
+                                     style="width: 140px; height: 140px; object-fit: cover;" alt="Foto Perfil" />
+                            }
+                            else
+                            {
+                                <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center"
+                                     style="width: 140px; height: 140px;">
+                                    <i class="bi bi-person text-secondary display-3"></i>
+                                </div>
+                            }
+                        </div>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="text-muted">Nombre Completo:</span>
+                                <strong>@estudiante.NombreCompleto</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="text-muted">Documento:</span>
+                                <strong>@estudiante.Documento</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="text-muted">Programa Académico:</span>
+                                <span>@estudiante.Carrera</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span class="text-muted">Facultad:</span>
+                                <span>@estudiante.Facultad</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TARJETA EQUIPO Y CONTROLES -->
+            <div class="col-lg-6 d-flex flex-column gap-3">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0"><i class="bi bi-laptop"></i> Equipo Registrado</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (estudiante.TieneEquipo && estudiante.Equipo != null)
+                        {
+                            <div class="row align-items-center">
+                                <div class="col-md-6 text-center mb-3 mb-md-0">
+                                    @if (!string.IsNullOrEmpty(estudiante.Equipo.FotoEquipoUrl))
+                                    {
+                                        <img src="@estudiante.Equipo.FotoEquipoUrl" class="img-fluid rounded border"
+                                             style="max-height: 120px; object-fit: contain;" alt="Equipo" />
+                                    }
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Serial:</strong> <span
+                                        class="badge bg-info text-dark">@estudiante.Equipo.Serial</span></p>
+                                        <p class="mb-1"><strong>Tipo:</strong> @estudiante.Equipo.Tipo</p>
+                                        <p class="mb-1"><strong>Marca:</strong> @estudiante.Equipo.Marca</p>
+                                    </div>
+                                </div>
+                            }
+                        else
+                            {
+                                <div class="alert alert-warning mb-0 text-center" role="alert">
+                                    <i class="bi bi-info-circle me-1"></i> El estudiante no posee equipos asociados.
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- CONTADOR DE TIEMPO EN VIVO -->
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body text-center py-2">
+                            <h6 class="text-muted text-uppercase mb-1 small">Estado de Permanencia</h6>
+                            @if (estudiante.EstaDentro)
+                            {
+                                <span class="badge bg-success mb-1"><i class="bi bi-door-open-fill me-1"></i> DENTRO DE LA
+                                    INSTITUCIÓN</span>
+                                    <div class="display-6 fw-bold text-primary my-1 fs-4">@tiempoTranscurridoTexto</div>
+                                }
+                        else
+                                {
+                                    <span class="badge bg-secondary mb-1"><i class="bi bi-door-closed-fill me-1"></i> FUERA DE LA
+                                        INSTITUCIÓN</span>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- BOTONES ENTRADA / SALIDA -->
+                            <div class="card shadow-sm border-0">
+                                <div class="card-body py-2">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <button class="btn btn-success w-100 py-2 fw-bold"
+                                                    disabled="@(estudiante.EstaDentro || registrando)"
+                                                    @onclick='() => RegistrarMovimiento("Entrada")'>
+                                                <i class="bi bi-box-arrow-in-right me-1"></i> ENTRADA
+                                            </button>
+                                        </div>
+                                        <div class="col-6">
+                                            <button class="btn btn-danger w-100 py-2 fw-bold"
+                                                    disabled="@(!estudiante.EstaDentro || registrando)"
+                                                    @onclick='() => RegistrarMovimiento("Salida")'>
+                                                <i class="bi bi-box-arrow-right me-1"></i> SALIDA
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TABLA DE HISTORIAL DE MOVIMIENTOS CON SCROLL INTERNO Y FILTROS -->
+                    <div class="card shadow-sm border-0 mt-4">
+                        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-2">
+                            <h6 class="mb-0"><i class="bi bi-clock-history me-1"></i> Historial de Movimientos del Estudiante</h6>
+                            <span class="badge bg-light text-dark">@(historialMovimientos?.Count ?? 0) Registros</span>
+                        </div>
+                        <div class="card-body">
+                            <!-- FILTROS POR FECHA Y SERIAL -->
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-4">
+                                    <input type="date" class="form-control form-control-sm" @bind="filtroFecha"
+                                           @bind:after="FiltrarHistorial" />
+                                </div>
+                                <div class="col-md-5">
+                                    <input type="text" class="form-control form-control-sm" placeholder="Filtrar por serial..."
+                                           @bind="filtroSerial" @bind:event="oninput" @bind:after="FiltrarHistorial" />
+                                </div>
+                                <div class="col-md-3">
+                                    <button class="btn btn-sm btn-outline-secondary w-100" @onclick="LimpiarFiltros">
+                                        <i class="bi bi-x-circle me-1"></i> Limpiar Filtros
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- CONTENEDOR CON SCROLL CORTADO (max-height) -->
+                            <div class="historial-table-wrapper">
+                                @if (historialCargando)
+                                {
+                                    <div class="text-center py-3">
+                                        <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
+                                        <small class="ms-2">Cargando historial...</small>
+                                    </div>
+                                }
+                                else if (historialMovimientos != null && historialMovimientos.Any())
+                                {
+                                    <table class="table table-hover table-sm align-middle small mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Tipo</th>
+                                                <th>Fecha y Hora</th>
+                                                <th>Serial Equipo</th>
+                                                <th>Guardia en Turno</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var item in historialMovimientos)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        <span class="badge @(item.TipoMovimiento == "Entrada" ? "bg-success" : "bg-danger")">
+                                                            @item.TipoMovimiento
+                                                        </span>
+                                                    </td>
+                                                    <td>@item.FechaHora.ToString("dd/MM/yyyy hh:mm:ss tt")</td>
+                                                    <td><code>@item.SerialEquipo</code></td>
+                                                    <td>@item.NombreGuardia</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                }
+                                else
+                                {
+                                    <div class="text-center text-muted py-3 small">
+                                        No se encontraron registros de movimiento para este estudiante.
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
 
 @code {
-    private string numeroDocumento = string.Empty;
-    private string mensajeError = string.Empty;
-    private string mensajeExito = string.Empty;
-    private bool isSearching = false;
-    private bool isProcessing = false;
+    private string documentoBusqueda = string.Empty;
+    private int idPorteriaSeleccionada = 1;
+    private bool buscando = false;
+    private bool registrando = false;
+    private bool historialCargando = false;
 
-    private EstudianteDetalleDto? estudianteEncontrado;
+    private string? mensajeExito;
+    private string? mensajeError;
 
-    // Reactividad en tiempo real: Si el usuario borra o modifica el documento, se ocultan las tarjetas
-    private void OnInputDocumento(ChangeEventArgs e)
+    private EstudianteDetalleDto? estudiante;
+    private List<PorteriaDto> listaPorterias = new();
+    private List<RegistroAccesoReadDto> historialMovimientos = new();
+
+    private DateTime? filtroFecha;
+    private string filtroSerial = string.Empty;
+
+    private Timer? temporizadorEnVivo;
+    private string tiempoTranscurridoTexto = "00h 00m 00s";
+
+    protected override async Task OnInitializedAsync()
     {
-        numeroDocumento = e.Value?.ToString() ?? string.Empty;
-
-        if (estudianteEncontrado != null && estudianteEncontrado.Documento != numeroDocumento)
+        // Cargar las porterías reales almacenadas en la base de datos (dbo.porterias)
+        listaPorterias = await ApiService.ObtenerPorteriasAsync();
+        if (listaPorterias.Any())
         {
-            estudianteEncontrado = null;
-            mensajeError = string.Empty;
-            mensajeExito = string.Empty;
+            idPorteriaSeleccionada = listaPorterias.First().IdPorteria;
         }
     }
 
     private async Task BuscarEstudiante()
     {
-        mensajeError = string.Empty;
-        mensajeExito = string.Empty;
+        if (string.IsNullOrWhiteSpace(documentoBusqueda)) return;
 
-        if (string.IsNullOrWhiteSpace(numeroDocumento))
+        buscando = true;
+        mensajeExito = null;
+        mensajeError = null;
+        DetenerTemporizador();
+
+        estudiante = await ApiService.VerificarEstudianteAsync(documentoBusqueda.Trim());
+
+        if (estudiante == null)
         {
-            mensajeError = "Por favor ingrese un número de documento válido.";
-            estudianteEncontrado = null;
-            return;
+            mensajeError = "No se encontró ningún estudiante con el documento especificado o está inactivo.";
+            historialMovimientos.Clear();
         }
-
-        isSearching = true;
-        try
+        else
         {
-            // Apunta al endpoint directo habilitado para portería: GET /api/Estudiantes/buscar/{documento}
-            estudianteEncontrado = await ApiService.ConsultarEstudiantePorDocumentoAsync(numeroDocumento.Trim());
-
-            if (estudianteEncontrado == null)
+            if (estudiante.EstaDentro)
             {
-                mensajeError = "No se encontró ningún estudiante con el documento ingresado.";
+                IniciarTemporizador();
             }
+            await CargarHistorial();
         }
-        catch (Exception ex)
-        {
-            mensajeError = $"Error al consultar los datos: {ex.Message}";
-        }
-        finally
-        {
-            isSearching = false;
-        }
+
+        buscando = false;
     }
 
-    private async Task RegistrarAcceso(string tipoMovimiento)
+    private async Task CargarHistorial()
     {
-        if (estudianteEncontrado == null) return;
+        if (estudiante == null || string.IsNullOrWhiteSpace(estudiante.Documento)) return;
+    
+        historialCargando = true;
+        historialMovimientos = await ApiService.ObtenerHistorialAccesoAsync(estudiante.Documento, filtroFecha, filtroSerial);
+        historialCargando = false;
+    }
 
-        isProcessing = true;
-        mensajeExito = string.Empty;
-        mensajeError = string.Empty;
+    private async Task FiltrarHistorial()
+    {
+        await CargarHistorial();
+    }
 
-        var dto = new RegistroAccesoCreateDto
+    private async Task LimpiarFiltros()
+    {
+        filtroFecha = null;
+        filtroSerial = string.Empty;
+        await CargarHistorial();
+    }
+
+    private async Task RegistrarMovimiento(string tipoMovimiento)
+    {
+        if (estudiante == null) return;
+
+        registrando = true;
+        mensajeExito = null;
+        mensajeError = null;
+
+        var dtoAcceso = new RegistroAccesoCreateDto
         {
-            IdEstudiante = estudianteEncontrado.IdEstudiante,
-            IdEquipo = null,
-            IdPorteria = 1,
+            IdEstudiante = estudiante.IdEstudiante,
+            IdEquipo = estudiante.TieneEquipo ? estudiante.Equipo?.IdEquipo : null,
+            IdPorteria = idPorteriaSeleccionada,
             TipoMovimiento = tipoMovimiento
         };
 
-        try
-        {
-            bool exito = await ApiService.RegistrarAccesoAsync(dto);
+        bool exito = await ApiService.RegistrarAccesoAsync(dtoAcceso);
 
-            if (exito)
-            {
-                mensajeExito = $"¡Movimiento de {tipoMovimiento.ToUpper()} registrado con éxito!";
-            }
-            else
-            {
-                mensajeError = "No se pudo completar el registro del movimiento.";
-            }
-        }
-        catch (Exception ex)
+        if (exito)
         {
-            mensajeError = $"Error al procesar el registro: {ex.Message}";
+            mensajeExito = $"¡Movimiento de {tipoMovimiento.ToUpper()} registrado con éxito!";
+            await BuscarEstudiante(); // Refresca datos y recarga el historial
         }
-        finally
+        else
         {
-            isProcessing = false;
+            mensajeError = $"Ocurrió un error al intentar registrar la {tipoMovimiento}.";
         }
+
+        registrando = false;
+    }
+
+    private void IniciarTemporizador()
+    {
+        CalcularTiempo();
+        temporizadorEnVivo = new Timer(1000);
+        temporizadorEnVivo.Elapsed += (s, e) =>
+        {
+            CalcularTiempo();
+            InvokeAsync(StateHasChanged);
+        };
+        temporizadorEnVivo.Start();
+    }
+
+    private void CalcularTiempo()
+    {
+        if (estudiante?.UltimoIngreso != null)
+        {
+            TimeSpan diferencia = DateTime.Now - estudiante.UltimoIngreso.Value;
+            tiempoTranscurridoTexto = $"{diferencia.Hours:D2}h {diferencia.Minutes:D2}m {diferencia.Seconds:D2}s";
+            if (diferencia.Days > 0)
+            {
+                tiempoTranscurridoTexto = $"{diferencia.Days}d " + tiempoTranscurridoTexto;
+            }
+        }
+    }
+
+    private void DetenerTemporizador()
+    {
+        if (temporizadorEnVivo != null)
+        {
+            temporizadorEnVivo.Stop();
+            temporizadorEnVivo.Dispose();
+            temporizadorEnVivo = null;
+        }
+    }
+
+    public void Dispose()
+    {
+        DetenerTemporizador();
     }
 }

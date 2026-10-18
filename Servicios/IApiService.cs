@@ -39,5 +39,8 @@ namespace FrontEnt_GestionPortatiles_Blazor.Servicios
         Task<List<CarreraDto>> ObtenerCarrerasPorFacultadAsync(int idFacultad);
         Task<List<MarcaDto>> ObtenerMarcasAsync();
         Task<List<TipoEquipoDto>> ObtenerTiposEquipoAsync();
+
+        Task<List<PorteriaDto>> ObtenerPorteriasAsync();
+        Task<List<RegistroAccesoReadDto>> ObtenerHistorialAccesoAsync(string numeroDocumento, DateTime? fecha = null, string? serial = null);
     }
 }

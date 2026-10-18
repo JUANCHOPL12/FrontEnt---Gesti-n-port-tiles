@@ -261,7 +261,7 @@ namespace FrontEnt_GestionPortatiles_Blazor.Servicios
                 return false;
             }
         }
-// =========================================================================
+        // =========================================================================
         // 6. MÓDULO DE CATÁLOGOS (Facultades, Carreras por Facultad, Marcas, Tipos)
         // Swagger: GET /api/Catalogos/facultades
         // Swagger: GET /api/Catalogos/carreras/facultad/{idFacultad}
@@ -321,6 +321,52 @@ namespace FrontEnt_GestionPortatiles_Blazor.Servicios
             {
                 Console.WriteLine($"Error al obtener tipos de equipo: {ex.Message}");
                 return new List<TipoEquipoDto>();
+            }
+        }
+
+        public async Task<List<PorteriaDto>> ObtenerPorteriasAsync()
+        {
+            try
+            {
+                var response = await _http.GetFromJsonAsync<List<PorteriaDto>>("api/Catalogos/porterias");
+                return response ?? new List<PorteriaDto>();
+            }
+            catch
+            {
+                return new List<PorteriaDto>();
+            }
+        }
+
+        public async Task<List<RegistroAccesoReadDto>> ObtenerHistorialAccesoAsync(string numeroDocumento, DateTime? fecha = null, string? serial = null)
+        {
+            // Validar que el número de documento no sea nulo ni esté vacío
+            if (string.IsNullOrWhiteSpace(numeroDocumento))
+            {
+                return new List<RegistroAccesoReadDto>();
+            }
+
+            try
+            {
+                var queryParams = new List<string>();
+
+                if (fecha.HasValue)
+                    queryParams.Add($"fecha={fecha.Value:yyyy-MM-dd}");
+
+                if (!string.IsNullOrWhiteSpace(serial))
+                    queryParams.Add($"serial={Uri.EscapeDataString(serial)}");
+
+                string queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
+
+                // Asegurar que numeroDocumento.Trim() se agregue correctamente
+                string url = $"api/RegistroAccesos/historial/{numeroDocumento.Trim()}{queryString}";
+
+                var response = await _http.GetFromJsonAsync<List<RegistroAccesoReadDto>>(url);
+                return response ?? new List<RegistroAccesoReadDto>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al obtener historial: {ex.Message}");
+                return new List<RegistroAccesoReadDto>();
             }
         }
     }
