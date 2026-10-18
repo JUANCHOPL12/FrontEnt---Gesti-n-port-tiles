@@ -1,222 +1,377 @@
 @page "/estudiantes"
 @using FrontEnt_GestionPortatiles_Blazor.DTOs.Estudiantes
-@inject HttpClient Http
+@using FrontEnt_GestionPortatiles_Blazor.Servicios
+@inject IApiService ApiService
 @inject IJSRuntime JS
 
-<PageTitle>SGE - Gestión de Estudiantes y Equipos</PageTitle>
-
 <div class="estudiantes-container">
-    <!-- Encabezado del Módulo -->
-    <header class="module-header">
+    <!-- ENCABEZADO Y ACCIONES PRINCIPALES -->
+    <div class="page-header">
         <div>
-            <h1>Gestión de Estudiantes y Equipos</h1>
-            <p class="subtitle">Administración de datos personales, portátiles vinculados y estado institucional (RF-05, RF-06, RF-09)</p>
+            <h2 class="title"><i class="bi bi-people-fill"></i> Gestión de Estudiantes</h2>
+            <p class="subtitle">Administración de alumnos, equipos portátiles y registro fotográfico en vivo</p>
         </div>
-        <button class="btn-primary" @onclick="AbrirModalCrear">
-            ➕ Registrar Nuevo Estudiante
+        <button class="btn btn-primary" @onclick="AbrirModalCrear">
+            <i class="bi bi-person-plus-fill"></i> Nuevo Estudiante
         </button>
-    </header>
+    </div>
 
-    <!-- Tarjeta de Filtro de Búsqueda -->
-    <section class="filter-card">
-        <div class="search-box">
-            <span class="search-icon">🔍</span>
-            <input type="text" 
-                   placeholder="Buscar por documento, nombres o apellidos..." 
-                   @bind="criterioBusqueda" 
-                   @bind:event="oninput" 
-                   @onkeyup="FiltrarLista" />
+    <!-- MENSAGES DE ALERTA -->
+    @if (!string.IsNullOrEmpty(mensajeExito))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill"></i> @mensajeExito
+            <button type="button" class="btn-close" @onclick="() => mensajeExito = null"></button>
         </div>
-    </section>
+    }
+    @if (!string.IsNullOrEmpty(mensajeError))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i> @mensajeError
+            <button type="button" class="btn-close" @onclick="() => mensajeError = null"></button>
+        </div>
+    }
 
-    <!-- Tabla Principal de Estudiantes (RF-05, RF-09) -->
-    <section class="table-card">
+    <!-- BARRA DE BÚSQUEDA Y FILTROS -->
+    <div class="filter-card">
+        <div class="search-box">
+            <i class="bi bi-search"></i>
+            <input type="text" class="form-control" placeholder="Buscar por documento o nombre..."
+                   @bind="criterioBusqueda" @bind:event="oninput" />
+        </div>
+    </div>
+
+    <!-- TABLA PRINCIPAL DE ESTUDIANTES -->
+    <div class="table-card">
         @if (cargando)
         {
-            <div class="loading-spinner">
-                <p>Cargando información de estudiantes...</p>
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted">Cargando registros desde la base de datos...</p>
             </div>
         }
-        else if (estudiantesFiltrados == null || !estudiantesFiltrados.Any())
+        else if (!EstudiantesFiltrados.Any())
         {
             <div class="empty-state">
+                <i class="bi bi-folder-x"></i>
                 <p>No se encontraron registros de estudiantes.</p>
             </div>
         }
         else
         {
             <div class="table-responsive">
-                <table class="data-table">
+                <table class="table align-middle">
                     <thead>
                         <tr>
                             <th>Foto</th>
                             <th>Documento</th>
-                            <th>Estudiante</th>
+                            <th>Nombre Completo</th>
                             <th>Contacto</th>
-                            <th>Equipo / Serial</th>
+                            <th>Equipo Asignado</th>
                             <th>Estado</th>
-                            <th>Acciones</th>
+                            <th class="text-end">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var est in estudiantesFiltrados)
+                        @foreach (var item in EstudiantesFiltrados)
                         {
                             <tr>
                                 <td>
-                                    <img src="@(string.IsNullOrEmpty(est.FotoPerfilUrl) ? "images/default-avatar.png" : est.FotoPerfilUrl)" 
-                                         alt="Perfil" 
-                                         class="table-avatar" />
-                                </td>
-                                <td><strong>@est.Documento</strong></td>
-                                <td>
-                                    <div class="student-name">@est.Nombres @est.Apellidos</div>
-                                </td>
-                                <td>
-                                    <small>📧 @(est.Correo ?? "N/A")</small><br />
-                                    <small>📞 @(est.Telefono ?? "N/A")</small>
-                                </td>
-                                <td>
-                                    @if (!string.IsNullOrEmpty(est.SerialEquipo))
-                                    {
-                                        <span class="serial-badge">💻 @est.SerialEquipo</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted">Sin Equipo</span>
-                                    }
-                                </td>
-                                <td>
-                                    <span class="badge @(est.Estado == "Activo" ? "badge-success" : "badge-danger")">
-                                        @est.Estado
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="action-buttons-inline">
-                                        <button class="btn-icon btn-edit" title="Editar Estudiante" @onclick="() => AbrirModalEditar(est)">✏️</button>
-                                        <button class="btn-icon btn-toggle" title="Cambiar Estado (Activo/Inactivo)" @onclick="() => CambiarEstadoEstudiante(est)">
-                                            @(est.Estado == "Activo" ? "🚫" : "✅")
-                                        </button>
+                                    <div class="avatar-cell">
+                                        @if (!string.IsNullOrEmpty(item.FotoPerfilUrl))
+                                        {
+                                            <img src="@item.FotoPerfilUrl" class="avatar-img" alt="Perfil" />
+                                        }
+                                        else
+                                        {
+                                            <div class="avatar-placeholder"><i class="bi bi-person"></i></div>
+                                        }
                                     </div>
                                 </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        }
-    </section>
-</div>
-
-<!-- MODAL FORMULARIO: Crear / Editar Estudiante y Equipo (RF-05, RF-06) -->
-@if (mostrarModal)
-{
-    <div class="modal-backdrop animate-fade">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>@(esEdicion ? "Editar Estudiante" : "Registrar Estudiante y Equipo")</h3>
-                    <button class="btn-close" @onclick="CerrarModal">✖</button>
+                                <td><strong>@item.Documento</strong></td>
+                                <td>@item.Nombres @item.Apellidos</td>
+                                <td>
+                                    <small class="d-block text-muted"><i class="bi bi-telephone"></i> @(item.Telefono ??
+                                                  "N/A")</small>
+                                        <small class="d-block text-muted"><i class="bi bi-envelope"></i> @(item.Correo ?? "N/A")</small>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.SerialEquipo))
+                                        {
+                                            <span class="badge bg-info text-dark"><i class="bi bi-laptop"></i> @item.SerialEquipo</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-light text-muted">Sin Equipo</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <button class="badge-btn @(item.Estado == "Activo" ? "bg-success" : "bg-secondary")"
+                                                @onclick="() => CambiarEstado(item)">
+                                            @item.Estado
+                                        </button>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-outline-primary me-1" title="Editar"
+                                                @onclick="() => AbrirModalEditar(item)">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
                 </div>
-                <EditForm Model="formModel" OnValidSubmit="GuardarEstudiante">
-                    <DataAnnotationsValidator />
-
-                    <div class="modal-body">
-                        <!-- Sección 1: Datos Personales del Alumno -->
-                        <div class="form-section-title">👤 Datos Personales</div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Documento *</label>
-                                <InputText class="form-control" @bind-Value="formModel.Documento" disabled="@esEdicion" />
-                                <ValidationMessage For="@(() => formModel.Documento)" />
-                            </div>
-                            <div class="form-group">
-                                <label>ID Carrera *</label>
-                                <InputNumber class="form-control" @bind-Value="formModel.IdCarrera" />
-                                <ValidationMessage For="@(() => formModel.IdCarrera)" />
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Nombres *</label>
-                                <InputText class="form-control" @bind-Value="formModel.Nombres" />
-                                <ValidationMessage For="@(() => formModel.Nombres)" />
-                            </div>
-                            <div class="form-group">
-                                <label>Apellidos *</label>
-                                <InputText class="form-control" @bind-Value="formModel.Apellidos" />
-                                <ValidationMessage For="@(() => formModel.Apellidos)" />
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Teléfono</label>
-                                <InputText class="form-control" @bind-Value="formModel.Telefono" />
-                            </div>
-                            <div class="form-group">
-                                <label>Correo Electrónico</label>
-                                <InputText class="form-control" @bind-Value="formModel.Correo" />
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Foto de Perfil (URL/Ruta)</label>
-                            <InputText class="form-control" @bind-Value="formModel.FotoPerfilUrl" placeholder="https://..." />
-                        </div>
-
-                        <!-- Sección 2: Datos del Portátil y Accesorios (RF-06) -->
-                        <div class="form-section-title mt-3">💻 Datos del Portátil y Accesorios</div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Número de Serial</label>
-                                <InputText class="form-control" @bind-Value="formModel.SerialEquipo" placeholder="Ej: SN-99812-X" />
-                            </div>
-                            <div class="form-group">
-                                <label>ID Marca</label>
-                                <InputNumber class="form-control" @bind-Value="formModel.IdMarca" />
-                            </div>
-                            <div class="form-group">
-                                <label>ID Tipo</label>
-                                <InputNumber class="form-control" @bind-Value="formModel.IdTipo" />
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>URL Foto Portátil</label>
-                                <InputText class="form-control" @bind-Value="formModel.FotoEquipoUrl" placeholder="https://..." />
-                            </div>
-                            <div class="form-group">
-                                <label>URL Foto Accesorios</label>
-                                <InputText class="form-control" @bind-Value="formModel.FotoAccesoriosUrl" placeholder="https://..." />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="modal-footer">
-                        <button type="button" class="btn-secondary" @onclick="CerrarModal">Cancelar</button>
-                        <button type="submit" class="btn-primary" disabled="@guardando">
-                            @(guardando ? "Guardando..." : "Guardar Registro")
-                        </button>
-                    </div>
-                </EditForm>
-            </div>
+            }
         </div>
     </div>
-}
+
+    <!-- MODAL FORMULARIO EDICIÓN / REGISTRO -->
+    @if (mostrarModal)
+    {
+        <div class="modal-backdrop fade show"></div>
+        <div class="modal fade show d-block" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="bi @(esEdicion ? "bi-pencil-square" : "bi-person-plus-fill")"></i>
+                            @(esEdicion ? "Editar Estudiante" : "Nuevo Registro de Estudiante")
+                        </h5>
+                        <button type="button" class="btn-close" @onclick="CerrarModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <EditForm Model="formulario" OnValidSubmit="GuardarEstudiante">
+                            <DataAnnotationsValidator />
+
+                            <!-- SECCIÓN A: DATOS PERSONALES -->
+                            <div class="form-section">
+                                <h6 class="section-title"><i class="bi bi-card-heading"></i> A. Datos Personales</h6>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Número Documento *</label>
+                                        <InputText class="form-control" @bind-Value="formulario.Documento"
+                                                   disabled="@esEdicion" />
+                                        <ValidationMessage For="@(() => formulario.Documento)" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Nombres *</label>
+                                        <InputText class="form-control" @bind-Value="formulario.Nombres" />
+                                        <ValidationMessage For="@(() => formulario.Nombres)" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Apellidos *</label>
+                                        <InputText class="form-control" @bind-Value="formulario.Apellidos" />
+                                        <ValidationMessage For="@(() => formulario.Apellidos)" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Teléfono</label>
+                                        <InputText class="form-control" @bind-Value="formulario.Telefono" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Correo Electrónico</label>
+                                        <InputText class="form-control" @bind-Value="formulario.Correo" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">ID Carrera / Programa *</label>
+                                        <InputNumber class="form-control" @bind-Value="formulario.IdCarrera" />
+                                        <ValidationMessage For="@(() => formulario.IdCarrera)" />
+                                    </div>
+
+                                    <!-- CÁMARA 1: FOTO PERFIL -->
+                                    <div class="col-12 mt-3">
+                                        <label class="form-label d-block">Fotografía 1: Foto de Perfil en Vivo</label>
+                                        <div class="camera-card">
+                                            @if (camaraActivaIndex == 1)
+                                            {
+                                                <div class="video-container">
+                                                    <video id="video1" autoplay playsinline class="camera-feed"></video>
+                                                    <canvas id="canvas1" class="d-none"></canvas>
+                                                    <div class="camera-actions">
+                                                        <button type="button" class="btn btn-sm btn-success"
+                                                                @onclick="() => CapturarFoto(1)">
+                                                            <i class="bi bi-camera"></i> Capturar Foto
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-secondary"
+                                                                @onclick="DetenerCamara">Cancelar</button>
+                                                    </div>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="preview-container">
+                                                    @if (!string.IsNullOrEmpty(formulario.FotoPerfilUrl))
+                                                    {
+                                                        <img src="@formulario.FotoPerfilUrl" class="photo-preview" />
+                                                        <button type="button" class="btn btn-sm btn-outline-warning mt-2"
+                                                                @onclick="() => AbrirCamara(1)">
+                                                            <i class="bi bi-arrow-repeat"></i> Repetir Foto
+                                                        </button>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="camera-placeholder" @onclick="() => AbrirCamara(1)">
+                                                            <i class="bi bi-camera-fill"></i>
+                                                            <span>Abrir Cámara en Vivo</span>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SECCIÓN B: EQUIPO PORTÁTIL -->
+                            <div class="form-section mt-4">
+                                <h6 class="section-title"><i class="bi bi-laptop"></i> B. Equipo Portátil (Opcional)</h6>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Número de Serial</label>
+                                        <InputText class="form-control" @bind-Value="formulario.SerialEquipo" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">ID Marca Equipo</label>
+                                        <InputNumber class="form-control" @bind-Value="formulario.IdMarca" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">ID Tipo Equipo</label>
+                                        <InputNumber class="form-control" @bind-Value="formulario.IdTipo" />
+                                    </div>
+
+                                    <!-- CÁMARA 2: FOTO EQUIPO -->
+                                    <div class="col-12 mt-3">
+                                        <label class="form-label d-block">Fotografía 2: Foto del Equipo Portátil</label>
+                                        <div class="camera-card">
+                                            @if (camaraActivaIndex == 2)
+                                            {
+                                                <div class="video-container">
+                                                    <video id="video2" autoplay playsinline class="camera-feed"></video>
+                                                    <canvas id="canvas2" class="d-none"></canvas>
+                                                    <div class="camera-actions">
+                                                        <button type="button" class="btn btn-sm btn-success"
+                                                                @onclick="() => CapturarFoto(2)">
+                                                            <i class="bi bi-camera"></i> Capturar Foto
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-secondary"
+                                                                @onclick="DetenerCamara">Cancelar</button>
+                                                    </div>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="preview-container">
+                                                    @if (!string.IsNullOrEmpty(formulario.FotoEquipoUrl))
+                                                    {
+                                                        <img src="@formulario.FotoEquipoUrl" class="photo-preview" />
+                                                        <button type="button" class="btn btn-sm btn-outline-warning mt-2"
+                                                                @onclick="() => AbrirCamara(2)">
+                                                            <i class="bi bi-arrow-repeat"></i> Repetir Foto
+                                                        </button>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="camera-placeholder" @onclick="() => AbrirCamara(2)">
+                                                            <i class="bi bi-camera-fill"></i>
+                                                            <span>Abrir Cámara en Vivo</span>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SECCIÓN C: ACCESORIOS -->
+                            <div class="form-section mt-4">
+                                <h6 class="section-title"><i class="bi bi-plug"></i> C. Accesorios Asociados</h6>
+                                <div class="row g-3">
+                                    <!-- CÁMARA 3: FOTO ACCESORIOS -->
+                                    <div class="col-12">
+                                        <label class="form-label d-block">Fotografía 3: Foto de Accesorios</label>
+                                        <div class="camera-card">
+                                            @if (camaraActivaIndex == 3)
+                                            {
+                                                <div class="video-container">
+                                                    <video id="video3" autoplay playsinline class="camera-feed"></video>
+                                                    <canvas id="canvas3" class="d-none"></canvas>
+                                                    <div class="camera-actions">
+                                                        <button type="button" class="btn btn-sm btn-success"
+                                                                @onclick="() => CapturarFoto(3)">
+                                                            <i class="bi bi-camera"></i> Capturar Foto
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-secondary"
+                                                                @onclick="DetenerCamara">Cancelar</button>
+                                                    </div>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="preview-container">
+                                                    @if (!string.IsNullOrEmpty(formulario.FotoAccesoriosUrl))
+                                                    {
+                                                        <img src="@formulario.FotoAccesoriosUrl" class="photo-preview" />
+                                                        <button type="button" class="btn btn-sm btn-outline-warning mt-2"
+                                                                @onclick="() => AbrirCamara(3)">
+                                                            <i class="bi bi-arrow-repeat"></i> Repetir Foto
+                                                        </button>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="camera-placeholder" @onclick="() => AbrirCamara(3)">
+                                                            <i class="bi bi-camera-fill"></i>
+                                                            <span>Abrir Cámara en Vivo</span>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-footer mt-4 px-0 pb-0">
+                                <button type="button" class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
+                                <button type="submit" class="btn btn-primary" disabled="@guardando">
+                                    @if (guardando)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1"></span>
+                                    }
+                                    Guardar Registro
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 
 @code {
-    private List<EstudianteReadDto> listaEstudiantes = new();
-    private List<EstudianteReadDto> estudiantesFiltrados = new();
-    private EstudianteCreateUpdateDto formModel = new();
-
+    private List<EstudianteReadDto> estudiantes = new();
+    private EstudianteCreateUpdateDto formulario = new();
+    
     private string criterioBusqueda = string.Empty;
+    private string? mensajeExito;
+    private string? mensajeError;
+    
     private bool cargando = true;
+    private bool guardando = false;
     private bool mostrarModal = false;
     private bool esEdicion = false;
-    private bool guardando = false;
     private int idEstudianteEditar = 0;
+    
+    private int camaraActivaIndex = 0;
+    private IJSObjectReference? cameraModule;
+
+    private IEnumerable<EstudianteReadDto> EstudiantesFiltrados =>
+        string.IsNullOrWhiteSpace(criterioBusqueda)
+            ? estudiantes
+            : estudiantes.Where(e =>
+                e.Documento.Contains(criterioBusqueda, StringComparison.OrdinalIgnoreCase) ||
+                e.Nombres.Contains(criterioBusqueda, StringComparison.OrdinalIgnoreCase) ||
+                e.Apellidos.Contains(criterioBusqueda, StringComparison.OrdinalIgnoreCase));
 
     protected override async Task OnInitializedAsync()
     {
@@ -226,124 +381,132 @@
     private async Task CargarEstudiantes()
     {
         cargando = true;
-        try
-        {
-            var result = await Http.GetFromJsonAsync<List<EstudianteReadDto>>("api/Estudiantes");
-            if (result != null)
-            {
-                listaEstudiantes = result;
-                FiltrarLista();
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error al consultar estudiantes: {ex.Message}");
-        }
-        finally
-        {
-            cargando = false;
-        }
-    }
-
-    private void FiltrarLista()
-    {
-        if (string.IsNullOrWhiteSpace(criterioBusqueda))
-        {
-            estudiantesFiltrados = listaEstudiantes.ToList();
-        }
-        else
-        {
-            var term = criterioBusqueda.ToLower();
-            estudiantesFiltrados = listaEstudiantes.Where(e =>
-                e.Documento.ToLower().Contains(term) ||
-                e.Nombres.ToLower().Contains(term) ||
-                e.Apellidos.ToLower().Contains(term)
-            ).ToList();
-        }
+        estudiantes = await ApiService.ObtenerEstudiantesAsync();
+        cargando = false;
     }
 
     private void AbrirModalCrear()
     {
-        formModel = new EstudianteCreateUpdateDto();
+        formulario = new EstudianteCreateUpdateDto { IdCarrera = 1 };
         esEdicion = false;
+        idEstudianteEditar = 0;
         mostrarModal = true;
     }
 
-    private void AbrirModalEditar(EstudianteReadDto estudiante)
+    private void AbrirModalEditar(EstudianteReadDto dto)
     {
-        idEstudianteEditar = estudiante.IdEstudiante;
-        formModel = new EstudianteCreateUpdateDto
+        idEstudianteEditar = dto.IdEstudiante;
+        formulario = new EstudianteCreateUpdateDto
         {
-            Documento = estudiante.Documento,
-            Nombres = estudiante.Nombres,
-            Apellidos = estudiante.Apellidos,
-            Telefono = estudiante.Telefono,
-            Correo = estudiante.Correo,
-            IdCarrera = estudiante.IdCarrera,
-            FotoPerfilUrl = estudiante.FotoPerfilUrl,
-            SerialEquipo = estudiante.SerialEquipo,
-            IdMarca = estudiante.IdMarca,
-            IdTipo = estudiante.IdTipo,
-            FotoEquipoUrl = estudiante.FotoEquipoUrl,
-            FotoAccesoriosUrl = estudiante.FotoAccesoriosUrl
+            Documento = dto.Documento,
+            Nombres = dto.Nombres,
+            Apellidos = dto.Apellidos,
+            Telefono = dto.Telefono,
+            Correo = dto.Correo,
+            IdCarrera = dto.IdCarrera,
+            FotoPerfilUrl = dto.FotoPerfilUrl,
+            SerialEquipo = dto.SerialEquipo,
+            IdMarca = dto.IdMarca,
+            IdTipo = dto.IdTipo,
+            FotoEquipoUrl = dto.FotoEquipoUrl,
+            FotoAccesoriosUrl = dto.FotoAccesoriosUrl
         };
         esEdicion = true;
         mostrarModal = true;
     }
 
-    private void CerrarModal()
+    private async Task CerrarModal()
     {
+        await DetenerCamara();
         mostrarModal = false;
+    }
+
+    private async Task AbrirCamara(int index)
+    {
+        await DetenerCamara();
+        camaraActivaIndex = index;
+        StateHasChanged(); // Forzar renderizado para dibujar el elemento <video>
+        
+        await Task.Delay(200); // Esperar que el DOM termine de renderizar la etiqueta <video>
+
+        try
+        {
+            if (cameraModule == null)
+            {
+                // Importar el módulo JS dinámicamente
+                cameraModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/camera.js");
+            }
+            await cameraModule.InvokeVoidAsync("startCamera", $"video{index}");
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "No se pudo acceder a la cámara: " + ex.Message;
+        }
+    }
+
+    private async Task CapturarFoto(int index)
+    {
+        if (cameraModule != null)
+        {
+            var base64 = await cameraModule.InvokeAsync<string>("capturePhoto", $"video{index}", $"canvas{index}");
+            if (!string.IsNullOrEmpty(base64))
+            {
+                if (index == 1) formulario.FotoPerfilUrl = base64;
+                if (index == 2) formulario.FotoEquipoUrl = base64;
+                if (index == 3) formulario.FotoAccesoriosUrl = base64;
+            }
+        }
+        camaraActivaIndex = 0;
+    }
+
+    private async Task DetenerCamara()
+    {
+        if (camaraActivaIndex > 0 && cameraModule != null)
+        {
+            await cameraModule.InvokeVoidAsync("stopCamera");
+            camaraActivaIndex = 0;
+        }
     }
 
     private async Task GuardarEstudiante()
     {
         guardando = true;
-        try
-        {
-            HttpResponseMessage response;
-            if (esEdicion)
-            {
-                // PUT /api/Estudiantes/{id} (RF-05)
-                response = await Http.PutAsJsonAsync($"api/Estudiantes/{idEstudianteEditar}", formModel);
-            }
-            else
-            {
-                // POST /api/Estudiantes (RF-05, RF-06)
-                response = await Http.PostAsJsonAsync("api/Estudiantes", formModel);
-            }
+        mensajeError = null;
+        mensajeExito = null;
 
-            if (response.IsSuccessStatusCode)
-            {
-                mostrarModal = false;
-                await CargarEstudiantes();
-            }
-        }
-        catch (Exception ex)
+        bool exito = esEdicion
+            ? await ApiService.ActualizarEstudianteAsync(idEstudianteEditar, formulario)
+            : await ApiService.RegistrarEstudianteAsync(formulario);
+
+        if (exito)
         {
-            Console.WriteLine($"Error al guardar estudiante: {ex.Message}");
+            mensajeExito = esEdicion ? "Estudiante actualizado correctamente." : "Estudiante registrado con éxito.";
+            await CerrarModal();
+            await CargarEstudiantes();
         }
-        finally
+        else
         {
-            guardando = false;
+            mensajeError = "Ocurrió un error al procesar la solicitud en el servidor.";
+        }
+        guardando = false;
+    }
+
+    private async Task CambiarEstado(EstudianteReadDto dto)
+    {
+        var nuevoEstado = dto.Estado == "Activo" ? "Inactivo" : "Activo";
+        var exito = await ApiService.CambiarEstadoEstudianteAsync(dto.IdEstudiante, nuevoEstado);
+        if (exito)
+        {
+            dto.Estado = nuevoEstado;
         }
     }
 
-    private async Task CambiarEstadoEstudiante(EstudianteReadDto estudiante)
+    public async ValueTask DisposeAsync()
     {
-        var nuevoEstado = estudiante.Estado == "Activo" ? "Inactivo" : "Activo";
-        try
+        await DetenerCamara();
+        if (cameraModule != null)
         {
-            // PATCH /api/Estudiantes/{id}/estado (RF-09)
-            var response = await Http.PatchAsJsonAsync($"api/Estudiantes/{estudiante.IdEstudiante}/estado", nuevoEstado);
-            if (response.IsSuccessStatusCode)
-            {
-                estudiante.Estado = nuevoEstado;
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error al cambiar estado: {ex.Message}");
+            await cameraModule.DisposeAsync();
         }
     }
 }
