@@ -1,0 +1,78 @@
+/* Estilos para tarjetas de métricas */
+.card {
+    border-radius: 10px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Badges de tipo de movimiento */
+.badge {
+    font-weight: 600;
+    padding: 0.5em 0.75em;
+    border-radius: 6px;
+}
+
+/* Formato de tabla */
+.table th {
+    font-weight: 600;
+    color: #495057;
+    border-bottom-width: 1px;
+    white-space: nowrap;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* Optimización para impresión (PDF / Impresora) */
+@media print {
+    /* Ocultar elementos de navegación y controles de la interfaz */
+    .btn,
+    .card-body .d-flex.justify-content-end,
+    header,
+    nav,
+    .sidebar,
+    .navmenu,
+    .navbar {
+        display: none !important;
+    }
+
+    /* Ocultar el panel de filtros para limpiar la hoja impres */
+    .card:has(.bi-funnel-fill) {
+        display: none !important;
+    }
+
+    /* Ajustar contenedores al ancho de la hoja */
+    body, .container-fluid {
+        background-color: #fff !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+    }
+
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+
+    .table th, .table td {
+        border: 1px solid #dee2e6 !important;
+        padding: 6px 8px !important;
+        font-size: 11pt;
+    }
+
+    .badge {
+        border: 1px solid #333;
+        color: #000 !important;
+        background-color: transparent !important;
+    }
+}

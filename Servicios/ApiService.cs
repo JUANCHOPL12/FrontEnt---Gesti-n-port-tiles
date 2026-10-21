@@ -5,6 +5,7 @@ using FrontEnt_GestionPortatiles_Blazor.DTOs.Equipos;
 using FrontEnt_GestionPortatiles_Blazor.DTOs.Estudiantes;
 using FrontEnt_GestionPortatiles_Blazor.DTOs.Usuarios;
 using FrontEnt_GestionPortatiles_Blazor.DTOs.Catalogos;
+using FrontEnt_GestionPortatiles_Blazor.DTOs.Reportes;
 
 namespace FrontEnt_GestionPortatiles_Blazor.Servicios
 {
@@ -202,8 +203,8 @@ namespace FrontEnt_GestionPortatiles_Blazor.Servicios
         {
             try
             {
-                var resultado = await _http.GetFromJsonAsync<List<UsuarioReadDto>>("api/Usuarios");
-                return resultado ?? new List<UsuarioReadDto>();
+                var response = await _http.GetFromJsonAsync<List<UsuarioReadDto>>("api/Usuarios");
+                return response ?? new List<UsuarioReadDto>();
             }
             catch
             {
@@ -223,11 +224,11 @@ namespace FrontEnt_GestionPortatiles_Blazor.Servicios
             }
         }
 
-        public async Task<bool> CrearUsuarioAsync(UsuarioCreateDto usuarioDto)
+        public async Task<bool> CrearUsuarioAsync(UsuarioCreateDto dto)
         {
             try
             {
-                var response = await _http.PostAsJsonAsync("api/Usuarios", usuarioDto);
+                var response = await _http.PostAsJsonAsync("api/Usuarios", dto);
                 return response.IsSuccessStatusCode;
             }
             catch
@@ -236,11 +237,11 @@ namespace FrontEnt_GestionPortatiles_Blazor.Servicios
             }
         }
 
-        public async Task<bool> ActualizarUsuarioAsync(int id, UsuarioUpdateDto usuarioDto)
+        public async Task<bool> ActualizarUsuarioAsync(int id, UsuarioUpdateDto dto)
         {
             try
             {
-                var response = await _http.PutAsJsonAsync($"api/Usuarios/{id}", usuarioDto);
+                var response = await _http.PutAsJsonAsync($"api/Usuarios/{id}", dto);
                 return response.IsSuccessStatusCode;
             }
             catch
@@ -367,6 +368,39 @@ namespace FrontEnt_GestionPortatiles_Blazor.Servicios
             {
                 Console.WriteLine($"Error al obtener historial: {ex.Message}");
                 return new List<RegistroAccesoReadDto>();
+            }
+        }
+
+        public async Task<List<ReporteMovimientoDto>> ObtenerReporteMovimientosAsync(DateTime? fechaInicio, DateTime? fechaFin, string? documento, string? serial, string? tipoMovimiento)
+        {
+            try
+            {
+                var queryParams = new List<string>();
+
+                if (fechaInicio.HasValue)
+                    queryParams.Add($"fechaInicio={fechaInicio.Value:yyyy-MM-dd}");
+
+                if (fechaFin.HasValue)
+                    queryParams.Add($"fechaFin={fechaFin.Value:yyyy-MM-dd}");
+
+                if (!string.IsNullOrWhiteSpace(documento))
+                    queryParams.Add($"documento={Uri.EscapeDataString(documento.Trim())}");
+
+                if (!string.IsNullOrWhiteSpace(serial))
+                    queryParams.Add($"serial={Uri.EscapeDataString(serial.Trim())}");
+
+                if (!string.IsNullOrWhiteSpace(tipoMovimiento) && tipoMovimiento != "Todos")
+                    queryParams.Add($"tipoMovimiento={tipoMovimiento}");
+
+                string queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
+                string url = $"api/RegistroAccesos/reporte{queryString}";
+
+                var response = await _http.GetFromJsonAsync<List<ReporteMovimientoDto>>(url);
+                return response ?? new List<ReporteMovimientoDto>();
+            }
+            catch
+            {
+                return new List<ReporteMovimientoDto>();
             }
         }
     }

@@ -4,6 +4,7 @@ using FrontEnt_GestionPortatiles_Blazor.DTOs.Equipos;
 using FrontEnt_GestionPortatiles_Blazor.DTOs.Estudiantes;
 using FrontEnt_GestionPortatiles_Blazor.DTOs.Usuarios;
 using FrontEnt_GestionPortatiles_Blazor.DTOs.Catalogos;
+using FrontEnt_GestionPortatiles_Blazor.DTOs.Reportes;
 namespace FrontEnt_GestionPortatiles_Blazor.Servicios
 {
     public interface IApiService
@@ -27,11 +28,10 @@ namespace FrontEnt_GestionPortatiles_Blazor.Servicios
         Task<bool> RegistrarEquipoAsync(CrearEquipoDto equipoDto);
         Task<bool> CambiarEstadoEquipoAsync(int id, string nuevoEstado);
 
-        // 5. ADMINISTRACIÓN DE USUARIOS
         Task<List<UsuarioReadDto>> ObtenerUsuariosAsync();
         Task<UsuarioReadDto?> ObtenerUsuarioPorIdAsync(int id);
-        Task<bool> CrearUsuarioAsync(UsuarioCreateDto usuarioDto);
-        Task<bool> ActualizarUsuarioAsync(int id, UsuarioUpdateDto usuarioDto);
+        Task<bool> CrearUsuarioAsync(UsuarioCreateDto dto);
+        Task<bool> ActualizarUsuarioAsync(int id, UsuarioUpdateDto dto);
         Task<bool> DesactivarUsuarioAsync(int id);
 
         // 6. CATÁLOGOS (Facultades, Carreras, Marcas, Tipos)
@@ -42,5 +42,7 @@ namespace FrontEnt_GestionPortatiles_Blazor.Servicios
 
         Task<List<PorteriaDto>> ObtenerPorteriasAsync();
         Task<List<RegistroAccesoReadDto>> ObtenerHistorialAccesoAsync(string numeroDocumento, DateTime? fecha = null, string? serial = null);
+
+        Task<List<ReporteMovimientoDto>> ObtenerReporteMovimientosAsync(DateTime? fechaInicio, DateTime? fechaFin, string? documento, string? serial, string? tipoMovimiento);
     }
 }

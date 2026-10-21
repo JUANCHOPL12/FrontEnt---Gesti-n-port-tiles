@@ -1,181 +1,194 @@
 @page "/usuarios"
 @using FrontEnt_GestionPortatiles_Blazor.DTOs.Usuarios
-@inject HttpClient Http
-@inject IJSRuntime JS
+@using FrontEnt_GestionPortatiles_Blazor.Servicios
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "SuperAdmin")]
+@inject IApiService ApiService
 
-<PageTitle>SGE - Administración de Cuentas</PageTitle>
-
-<div class="usuarios-container">
-    <!-- Encabezado del Módulo (RF-10, RNF-08) -->
-    <header class="module-header">
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1>Administración de Cuentas de Usuario</h1>
-            <p class="subtitle">Gestión exclusiva para SuperAdmin: Creación, edición, roles (RBAC) y estado de cuentas (RF-10, RNF-08)</p>
+            <h2 class="fw-bold mb-1"><i class="bi bi-people-fill text-primary me-2"></i>Gestión de Usuarios y Roles</h2>
+            <p class="text-muted mb-0">Administración exclusiva de cuentas operativas para Guardias y Administradores (RF-10, RNF-08)</p>
         </div>
-        <button class="btn-primary" @onclick="AbrirModalCrear">
-            👤 Crear Nuevo Usuario
+        <button class="btn btn-primary px-3 shadow-sm" @onclick="AbrirModalCrear">
+            <i class="bi bi-person-plus-fill me-1"></i> Nuevo Usuario
         </button>
-    </header>
+    </div>
 
-    <!-- Tabla de Listado de Usuarios -->
-    <section class="table-card">
-        @if (cargando)
-        {
-            <div class="loading-spinner">
-                <p>Cargando lista de usuarios del sistema...</p>
-            </div>
-        }
-        else if (listaUsuarios == null || !listaUsuarios.Any())
-        {
-            <div class="empty-state">
-                <p>No existen cuentas de usuarios registradas en la base de datos.</p>
-            </div>
-        }
-        else
-        {
-            <div class="table-responsive">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Usuario</th>
-                            <th>Nombre Completo</th>
-                            <th>Rol Asignado</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var user in listaUsuarios)
-                        {
-                            <tr>
-                                <td><strong>#@user.IdUsuario</strong></td>
-                                <td>@user.NombreUsuario</td>
-                                <td>@user.NombreCompleto</td>
-                                <td>
-                                    <span class="badge-role @ObtenerClaseRol(user.NombreRol)">
-                                        🔑 @user.NombreRol
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge @(user.Estado == "Activo" ? "badge-success" : "badge-danger")">
-                                        @user.Estado
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="action-buttons-inline">
-                                        <button class="btn-icon btn-edit" title="Editar Usuario" @onclick="() => AbrirModalEditar(user)">✏️</button>
-                                        <button class="btn-icon btn-delete" title="Desactivar / Eliminar" @onclick="() => DesactivarUsuario(user.IdUsuario)">🗑️</button>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        }
-    </section>
-</div>
+    @if (!string.IsNullOrEmpty(mensajeExito))
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@mensajeExito
+            <button type="button" class="btn-close" @onclick="() => mensajeExito = null"></button>
+        </div>
+    }
 
-<!-- MODAL CREACIÓN DE USUARIO (RF-10) -->
-@if (mostrarModalCrear)
-{
-    <div class="modal-backdrop animate-fade">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Crear Nueva Cuenta</h3>
-                    <button class="btn-close" @onclick="CerrarModales">✖</button>
+    @if (!string.IsNullOrEmpty(mensajeError))
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@mensajeError
+            <button type="button" class="btn-close" @onclick="() => mensajeError = null"></button>
+        </div>
+    }
+
+    <!-- TABLA DE USUARIOS OPERATIVOS -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            @if (cargando)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Cargando usuarios del sistema...</p>
                 </div>
-                <EditForm Model="createDto" OnValidSubmit="GuardarNuevoUsuario">
-                    <DataAnnotationsValidator />
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label>Nombre de Usuario *</label>
-                            <InputText class="form-control" @bind-Value="createDto.NombreUsuario" placeholder="Ej: jguardia" />
-                            <ValidationMessage For="@(() => createDto.NombreUsuario)" />
-                        </div>
-
-                        <div class="form-group">
-                            <label>Contraseña *</label>
-                            <InputText type="password" class="form-control" @bind-Value="createDto.Password" placeholder="Mínimo 6 caracteres" />
-                            <ValidationMessage For="@(() => createDto.Password)" />
-                        </div>
-
-                        <div class="form-group">
-                            <label>Nombre Completo *</label>
-                            <InputText class="form-control" @bind-Value="createDto.NombreCompleto" placeholder="Ej: Juan Pérez" />
-                            <ValidationMessage For="@(() => createDto.NombreCompleto)" />
-                        </div>
-
-                        <div class="form-group">
-                            <label>Rol Asignado *</label>
-                            <InputSelect class="form-control" @bind-Value="createDto.IdRol">
-                                <option value="0">-- Seleccione un Rol --</option>
-                                <option value="1">Guardia</option>
-                                <option value="2">Administrador</option>
-                            </InputSelect>
-                            <ValidationMessage For="@(() => createDto.IdRol)" />
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn-secondary" @onclick="CerrarModales">Cancelar</button>
-                        <button type="submit" class="btn-primary" disabled="@procesando">
-                            @(procesando ? "Guardando..." : "Crear Usuario")
-                        </button>
-                    </div>
-                </EditForm>
-            </div>
+            }
+            else if (usuariosFiltrados != null && usuariosFiltrados.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4" style="width: 60px;">#</th>
+                                <th>Nombre Completo</th>
+                                <th>Usuario</th>
+                                <th>Rol Asignado</th>
+                                <th>Estado</th>
+                                <th class="text-end pe-4">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ int indice = 1; }
+                            @foreach (var u in usuariosFiltrados)
+                            {
+                                <tr>
+                                    <td class="ps-4 fw-bold text-muted">@(indice++)</td>
+                                    <td class="fw-semibold">@u.NombreCompleto</td>
+                                    <td><code>@u.NombreUsuario</code></td>
+                                    <td>
+                                        <span class="badge @(u.NombreRol == "Administrador" ? "bg-primary" : "bg-info text-dark")">
+                                            @u.NombreRol
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input cursor-pointer" type="checkbox" role="switch"
+                                                   checked="@(u.Estado == "Activo")"
+                                                   @onchange="() => CambiarEstado(u)" />
+                                            <label class="form-check-label small fw-semibold @(u.Estado == "Activo" ? "text-success" : "text-danger")">
+                                                @u.Estado
+                                            </label>
+                                        </div>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <button class="btn btn-sm btn-outline-warning me-1" @onclick="() => AbrirModalEditar(u)">
+                                            <i class="bi bi-pencil-square me-1"></i> Editar
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DesactivarUsuario(u.IdUsuario)">
+                                            <i class="bi bi-person-x-fill me-1"></i> Desactivar
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-people display-4"></i>
+                    <p class="mt-2">No hay cuentas operativas registradas.</p>
+                </div>
+            }
         </div>
     </div>
-}
+</div>
 
-<!-- MODAL EDICIÓN DE USUARIO (RF-10) -->
-@if (mostrarModalEditar)
+<!-- MODAL FORMULARIO CREAR / EDITAR -->
+@if (mostrarModal)
 {
-    <div class="modal-backdrop animate-fade">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Editar Cuenta de Usuario</h3>
-                    <button class="btn-close" @onclick="CerrarModales">✖</button>
+    <div class="modal fade show d-block tab-index-1" style="background-color: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title">
+                        <i class="bi @(esEdicion ? "bi-pencil-square" : "bi-person-plus-fill") me-2"></i>
+                        @(esEdicion ? "Editar Usuario" : "Nuevo Usuario")
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CerrarModal"></button>
                 </div>
-                <EditForm Model="updateDto" OnValidSubmit="GuardarEdicionUsuario">
+
+                <EditForm Model="modeloFormulario" OnValidSubmit="GuardarUsuario">
                     <DataAnnotationsValidator />
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label>Nombre Completo *</label>
-                            <InputText class="form-control" @bind-Value="updateDto.NombreCompleto" />
-                            <ValidationMessage For="@(() => updateDto.NombreCompleto)" />
+                    <div class="modal-body p-4">
+                        <!-- Nombre Completo -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nombre Completo</label>
+                            <InputText class="form-control" @bind-Value="modeloFormulario.NombreCompleto" placeholder="Ej. Juan Pérez" />
+                            <ValidationMessage For="() => modeloFormulario.NombreCompleto" class="text-danger small" />
                         </div>
 
-                        <div class="form-group">
-                            <label>Restablecer Contraseña (Opcional)</label>
-                            <InputText type="password" class="form-control" @bind-Value="updateDto.Password" placeholder="Dejar en blanco para no modificar" />
+                        <!-- Usuario (Login) -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nombre de Usuario (Login)</label>
+                            <InputText class="form-control" @bind-Value="modeloFormulario.NombreUsuario" disabled="@esEdicion" placeholder="Ej. jperez" />
+                            <ValidationMessage For="() => modeloFormulario.NombreUsuario" class="text-danger small" />
                         </div>
 
-                        <div class="form-group">
-                            <label>Estado de la Cuenta *</label>
-                            <InputSelect class="form-control" @bind-Value="updateDto.Estado">
-                                <option value="Activo">Activo</option>
-                                <option value="Inactivo">Inactivo</option>
-                            </InputSelect>
-                            <ValidationMessage For="@(() => updateDto.Estado)" />
+                        <!-- Contraseña (Texto Enmascarado) -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                Contraseña
+                                @if (esEdicion)
+                                {
+                                    <small class="text-muted font-weight-normal">(Dejar en blanco si no desea cambiarla)</small>
+                                }
+                            </label>
+                            <InputText type="password" class="form-control" @bind-Value="modeloFormulario.Password" placeholder="••••••••" />
+                            <ValidationMessage For="() => modeloFormulario.Password" class="text-danger small" />
                         </div>
 
-                        <div class="form-group">
-                            <label>Rol Asignado *</label>
-                            <InputSelect class="form-control" @bind-Value="updateDto.IdRol">
-                                <option value="1">Guardia</option>
+                        <!-- Rol Asignado -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Rol Asignado</label>
+                            <InputSelect class="form-select" @bind-Value="modeloFormulario.IdRol">
+                                <option value="0">-- Seleccione un Rol --</option>
                                 <option value="2">Administrador</option>
+                                <option value="3">Guardia</option>
                             </InputSelect>
-                            <ValidationMessage For="@(() => updateDto.IdRol)" />
+                            @if (modeloFormulario.IdRol == 0)
+                            {
+                                <small class="text-danger">Debe seleccionar un rol válido.</small>
+                            }
+                        </div>
+
+                        <!-- Estado de la Cuenta (Switch) -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold d-block">Estado de la Cuenta</label>
+                            <div class="form-check form-switch fs-5">
+                                <input class="form-check-input cursor-pointer" type="checkbox" id="switchEstadoModal"
+                                       checked="@(modeloFormulario.Estado == "Activo")"
+                                       @onchange="ToggleEstadoModal" />
+                                <label class="form-check-label fs-6 fw-bold ms-2 @(modeloFormulario.Estado == "Activo" ? "text-success" : "text-danger")" for="switchEstadoModal">
+                                    @modeloFormulario.Estado
+                                </label>
+                            </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn-secondary" @onclick="CerrarModales">Cancelar</button>
-                        <button type="submit" class="btn-primary" disabled="@procesando">
-                            @(procesando ? "Actualizando..." : "Actualizar Usuario")
+
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary px-4" disabled="@guardando">
+                            @if (guardando)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                                <span>Guardando...</span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-save me-1"></i>
+                                <span>Guardar</span>
+                            }
                         </button>
                     </div>
                 </EditForm>
@@ -186,14 +199,19 @@
 
 @code {
     private List<UsuarioReadDto> listaUsuarios = new();
-    private UsuarioCreateDto createDto = new();
-    private UsuarioUpdateDto updateDto = new();
+    private IEnumerable<UsuarioReadDto> usuariosFiltrados => 
+        listaUsuarios.Where(u => u.NombreRol != "SuperAdmin" && u.IdRol != 1);
 
     private bool cargando = true;
-    private bool procesando = false;
-    private bool mostrarModalCrear = false;
-    private bool mostrarModalEditar = false;
-    private int idUsuarioSeleccionado = 0;
+    private bool guardando = false;
+    private bool mostrarModal = false;
+    private bool esEdicion = false;
+    private int usuarioIdEdicion = 0;
+
+    private string? mensajeExito;
+    private string? mensajeError;
+
+    private FormUsuarioModel modeloFormulario = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -203,115 +221,143 @@
     private async Task CargarUsuarios()
     {
         cargando = true;
-        try
-        {
-            var res = await Http.GetFromJsonAsync<List<UsuarioReadDto>>("api/Usuarios");
-            if (res != null) listaUsuarios = res;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error al obtener la lista de usuarios: {ex.Message}");
-        }
-        finally
-        {
-            cargando = false;
-        }
+        listaUsuarios = await ApiService.ObtenerUsuariosAsync();
+        cargando = false;
     }
 
     private void AbrirModalCrear()
     {
-        createDto = new UsuarioCreateDto();
-        mostrarModalCrear = true;
+        esEdicion = false;
+        usuarioIdEdicion = 0;
+        modeloFormulario = new FormUsuarioModel { Estado = "Activo", IdRol = 3 };
+        mostrarModal = true;
     }
 
-    private void AbrirModalEditar(UsuarioReadDto user)
+    private void AbrirModalEditar(UsuarioReadDto usuario)
     {
-        idUsuarioSeleccionado = user.IdUsuario;
-        updateDto = new UsuarioUpdateDto
+        esEdicion = true;
+        usuarioIdEdicion = usuario.IdUsuario;
+        modeloFormulario = new FormUsuarioModel
         {
-            NombreCompleto = user.NombreCompleto,
-            Estado = user.Estado,
-            IdRol = user.IdRol
+            NombreCompleto = usuario.NombreCompleto,
+            NombreUsuario = usuario.NombreUsuario,
+            Password = string.Empty,
+            IdRol = usuario.IdRol,
+            Estado = usuario.Estado
         };
-        mostrarModalEditar = true;
+        mostrarModal = true;
     }
 
-    private void CerrarModales()
+    private void CerrarModal()
     {
-        mostrarModalCrear = false;
-        mostrarModalEditar = false;
+        mostrarModal = false;
     }
 
-    private async Task GuardarNuevoUsuario()
+    private void ToggleEstadoModal(ChangeEventArgs e)
     {
-        procesando = true;
-        try
+        bool esActivo = e.Value is bool val && val;
+        modeloFormulario.Estado = esActivo ? "Activo" : "Inactivo";
+    }
+
+    private async Task GuardarUsuario()
+    {
+        if (modeloFormulario.IdRol == 0) return;
+
+        guardando = true;
+        mensajeExito = null;
+        mensajeError = null;
+
+        if (!esEdicion)
         {
-            // POST /api/Usuarios (RF-10)
-            var response = await Http.PostAsJsonAsync("api/Usuarios", createDto);
-            if (response.IsSuccessStatusCode)
+            var createDto = new UsuarioCreateDto
             {
-                CerrarModales();
+                NombreCompleto = modeloFormulario.NombreCompleto,
+                NombreUsuario = modeloFormulario.NombreUsuario,
+                Password = modeloFormulario.Password,
+                IdRol = modeloFormulario.IdRol
+            };
+
+            bool ok = await ApiService.CrearUsuarioAsync(createDto);
+            if (ok)
+            {
+                mensajeExito = "Usuario creado exitosamente.";
+                CerrarModal();
                 await CargarUsuarios();
             }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error al crear el usuario: {ex.Message}");
-        }
-        finally
-        {
-            procesando = false;
-        }
-    }
-
-    private async Task GuardarEdicionUsuario()
-    {
-        procesando = true;
-        try
-        {
-            // PUT /api/Usuarios/{id} (RF-10)
-            var response = await Http.PutAsJsonAsync($"api/Usuarios/{idUsuarioSeleccionado}", updateDto);
-            if (response.IsSuccessStatusCode)
+            else
             {
-                CerrarModales();
-                await CargarUsuarios();
+                mensajeError = "No se pudo crear el usuario. Verifique si el nombre de usuario ya existe.";
             }
         }
-        catch (Exception ex)
+        else
         {
-            Console.WriteLine($"Error al editar el usuario: {ex.Message}");
+            var updateDto = new UsuarioUpdateDto
+            {
+                NombreCompleto = modeloFormulario.NombreCompleto,
+                Password = string.IsNullOrWhiteSpace(modeloFormulario.Password) ? null : modeloFormulario.Password,
+                IdRol = modeloFormulario.IdRol,
+                Estado = modeloFormulario.Estado
+            };
+
+            bool ok = await ApiService.ActualizarUsuarioAsync(usuarioIdEdicion, updateDto);
+            if (ok)
+            {
+                mensajeExito = "Usuario actualizado correctamente.";
+                CerrarModal();
+                await CargarUsuarios();
+            }
+            else
+            {
+                mensajeError = "Error al actualizar la información del usuario.";
+            }
         }
-        finally
+
+        guardando = false;
+    }
+
+    private async Task CambiarEstado(UsuarioReadDto usuario)
+    {
+        string nuevoEstado = usuario.Estado == "Activo" ? "Inactivo" : "Activo";
+        var updateDto = new UsuarioUpdateDto
         {
-            procesando = false;
+            NombreCompleto = usuario.NombreCompleto,
+            IdRol = usuario.IdRol,
+            Estado = nuevoEstado,
+            Password = null
+        };
+
+        bool ok = await ApiService.ActualizarUsuarioAsync(usuario.IdUsuario, updateDto);
+        if (ok)
+        {
+            usuario.Estado = nuevoEstado;
+            mensajeExito = $"Estado de {usuario.NombreUsuario} actualizado a {nuevoEstado}.";
+        }
+        else
+        {
+            mensajeError = "No se pudo actualizar el estado del usuario.";
         }
     }
 
     private async Task DesactivarUsuario(int idUsuario)
     {
-        bool confirmado = await JS.InvokeAsync<bool>("confirm", "¿Está seguro de que desea desactivar esta cuenta de usuario?");
-        if (!confirmado) return;
-
-        try
+        bool ok = await ApiService.DesactivarUsuarioAsync(idUsuario);
+        if (ok)
         {
-            // DELETE /api/Usuarios/{id} (RF-10)
-            var response = await Http.DeleteAsync($"api/Usuarios/{idUsuario}");
-            if (response.IsSuccessStatusCode)
-            {
-                await CargarUsuarios();
-            }
+            mensajeExito = "Cuenta desactivada exitosamente.";
+            await CargarUsuarios();
         }
-        catch (Exception ex)
+        else
         {
-            Console.WriteLine($"Error al desactivar el usuario: {ex.Message}");
+            mensajeError = "Ocurrió un error al desactivar la cuenta.";
         }
     }
 
-    private string ObtenerClaseRol(string rol) => rol.ToLower() switch
+    private class FormUsuarioModel
     {
-        "superadmin" => "role-superadmin",
-        "administrador" => "role-admin",
-        _ => "role-guardia"
-    };
+        public string NombreCompleto { get; set; } = string.Empty;
+        public string NombreUsuario { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public int IdRol { get; set; }
+        public string Estado { get; set; } = "Activo";
+    }
 }

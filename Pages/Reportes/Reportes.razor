@@ -1,0 +1,202 @@
+@page "/reportes"
+@using FrontEnt_GestionPortatiles_Blazor.DTOs.Reportes
+@using FrontEnt_GestionPortatiles_Blazor.Servicios
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "SuperAdmin")]
+@inject IApiService ApiService
+@inject IJSRuntime JS
+
+<div class="container-fluid py-4">
+    <!-- CABECERA -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1"><i class="bi bi-file-earmark-bar-graph-fill text-primary me-2"></i>Reportes y Auditoría</h2>
+            <p class="text-muted mb-0">Análisis consolidado de accesos, equipos en sede y trazabilidad por guardia (Exclusivo SuperAdmin)</p>
+        </div>
+        <button class="btn btn-outline-secondary px-3 shadow-sm" @onclick="ImprimirReporte">
+            <i class="bi bi-printer-fill me-1"></i> Imprimir / Guardar PDF
+        </button>
+    </div>
+
+    <!-- TARJETAS DE MÉTRICAS RÁPIDAS -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm bg-primary text-white p-3">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h6 class="text-white-50 text-uppercase fw-bold mb-1">Entradas Registradas</h6>
+                        <h2 class="fw-bold mb-0">@totalEntradas</h2>
+                    </div>
+                    <i class="bi bi-box-arrow-in-right display-4 text-white-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm bg-warning text-dark p-3">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h6 class="text-dark-50 text-uppercase fw-bold mb-1">Salidas Registradas</h6>
+                        <h2 class="fw-bold mb-0">@totalSalidas</h2>
+                    </div>
+                    <i class="bi bi-box-arrow-left display-4 text-dark-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm bg-success text-white p-3">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h6 class="text-white-50 text-uppercase fw-bold mb-1">Equipos Actualmente Dentro</h6>
+                        <h2 class="fw-bold mb-0">@equiposDentro</h2>
+                    </div>
+                    <i class="bi bi-laptop display-4 text-white-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANEL DE FILTROS -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-4">
+            <h5 class="fw-bold mb-3"><i class="bi bi-funnel-fill text-secondary me-2"></i>Filtros de Búsqueda</h5>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Fecha Inicio</label>
+                    <input type="date" class="form-control" @bind="fechaInicio" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Fecha Fin</label>
+                    <input type="date" class="form-control" @bind="fechaFin" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold">Documento Estudiante</label>
+                    <input type="text" class="form-control" placeholder="Cédula..." @bind="filtroDocumento" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold">Serial Equipo</label>
+                    <input type="text" class="form-control" placeholder="Serial..." @bind="filtroSerial" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold">Movimiento</label>
+                    <select class="form-select" @bind="filtroTipo">
+                        <option value="Todos">Todos</option>
+                        <option value="Entrada">Entrada</option>
+                        <option value="Salida">Salida</option>
+                    </select>
+                </div>
+            </div>
+            <div class="d-flex justify-content-end mt-3 gap-2">
+                <button class="btn btn-secondary px-3" @onclick="LimpiarFiltros">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Limpiar
+                </button>
+                <button class="btn btn-primary px-4" @onclick="AplicarFiltros">
+                    <i class="bi bi-search me-1"></i> Filtrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABLA RESULTADOS -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            @if (cargando)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Generando reporte...</p>
+                </div>
+            }
+            else if (listaMovimientos != null && listaMovimientos.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4" style="width: 60px;">#</th>
+                                <th>Fecha y Hora</th>
+                                <th>Estudiante</th>
+                                <th>Documento</th>
+                                <th>Serial Equipo</th>
+                                <th>Movimiento</th>
+                                <th>Guardia / Operador</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ int indice = 1; }
+                            @foreach (var r in listaMovimientos)
+                            {
+                                <tr>
+                                    <td class="ps-4 text-muted fw-bold">@(indice++)</td>
+                                    <td>@r.FechaHora.ToString("dd/MM/yyyy hh:mm tt")</td>
+                                    <td class="fw-semibold">@r.NombreEstudiante</td>
+                                    <td><code>@r.DocumentoEstudiante</code></td>
+                                    <td>@(string.IsNullOrEmpty(r.SerialEquipo) ? "Sin Equipo" : r.SerialEquipo)</td>
+                                    <td>
+                                        <span class="badge @(r.TipoMovimiento == "Entrada" ? "bg-success" : "bg-warning text-dark")">
+                                            @r.TipoMovimiento
+                                        </span>
+                                    </td>
+                                    <td>@r.NombreGuardia</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-file-earmark-x display-4"></i>
+                    <p class="mt-2">No se encontraron movimientos con los criterios seleccionados.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ReporteMovimientoDto> listaMovimientos = new();
+    private bool cargando = false;
+
+    private DateTime? fechaInicio = DateTime.Now.AddDays(-7);
+    private DateTime? fechaFin = DateTime.Now;
+    private string? filtroDocumento;
+    private string? filtroSerial;
+    private string filtroTipo = "Todos";
+
+    private int totalEntradas => listaMovimientos.Count(m => m.TipoMovimiento == "Entrada");
+    private int totalSalidas => listaMovimientos.Count(m => m.TipoMovimiento == "Salida");
+    private int equiposDentro => Math.Max(0, totalEntradas - totalSalidas);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarReporte();
+    }
+
+    private async Task CargarReporte()
+    {
+        cargando = true;
+        listaMovimientos = await ApiService.ObtenerReporteMovimientosAsync(fechaInicio, fechaFin, filtroDocumento, filtroSerial, filtroTipo);
+        cargando = false;
+    }
+
+    private async Task AplicarFiltros()
+    {
+        await CargarReporte();
+    }
+
+    private async Task LimpiarFiltros()
+    {
+        fechaInicio = DateTime.Now.AddDays(-7);
+        fechaFin = DateTime.Now;
+        filtroDocumento = string.Empty;
+        filtroSerial = string.Empty;
+        filtroTipo = "Todos";
+        await CargarReporte();
+    }
+
+    private async Task ImprimirReporte()
+    {
+        await JS.InvokeVoidAsync("window.print");
+    }
+}
